@@ -1,0 +1,36 @@
+// Add to backend/routes/assistant.js
+const assistant = {
+  // Auto-flag suspicious expenses
+  detectAnomalies: async (userId) => {
+    const receipts = await getReceipts(userId, { limit: 100 });
+    const stats = calculateStats(receipts);
+    
+    const anomalies = receipts.filter(r => 
+      r.total > stats.mean + (3 * stats.stdDev) ||
+      r.total < stats.mean - (3 * stats.stdDev) ||
+      isUnusualVendor(r.vendor, stats.topVendors)
+    );
+    
+    return anomalies;
+  },
+  
+  // Predict future spending
+  predictSpending: async (userId, months = 3) => {
+    const historical = await getMonthlyData(userId);
+    // Use Prophet or simple ARIMA
+    const predictions = forecast(historical, months);
+    return predictions;
+  },
+  
+  // Suggest tax deductions
+  suggestDeductions: async (userId, year) => {
+    const receipts = await getReceiptsByYear(userId, year);
+    const deductions = {
+      vehicle: calculateMileage(receipts),
+      homeOffice: calculateHomeOffice(receipts),
+      tools: calculateToolDepreciation(receipts),
+      supplies: receipts.filter(r => r.category === 'supplies').reduce(sum, 0)
+    };
+    return deductions;
+  }
+};
