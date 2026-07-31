@@ -1,0 +1,186 @@
+// backend/services/disasterRecovery.js
+class DisasterRecoveryService {
+  constructor() {
+    this.recoveryPlans = new Map();
+    this.lastTestDate = null;
+    this.initRecoveryPlans();
+  }
+
+  initRecoveryPlans() {
+    // Database failure
+    this.recoveryPlans.set('database_failure', {
+      steps: [
+        'Failover to replica',
+        'Restore from WAL',
+        'Verify data integrity',
+        'Switch back when ready'
+      ],
+      rto: 300, // 5 minutes
+      rpo: 60 // 1 minute
+    });
+
+    // S3 failure
+    this.recoveryPlans.set('storage_failure', {
+      steps: [
+        'Switch to backup region',
+        'Restore from cross-region replication',
+        'Verify file integrity',
+        'Redirect traffic'
+      ],
+      rto: 600, // 10 minutes
+      rpo: 300 // 5 minutes
+    });
+
+    // Region failure
+    this.recoveryPlans.set('region_failure', {
+      steps: [
+        'Activate secondary region',
+        'Update DNS records',
+        'Scale resources',
+        'Restore from latest backup'
+      ],
+      rto: 1800, // 30 minutes
+      rpo: 900 // 15 minutes
+    });
+
+    // Data corruption
+    this.recoveryPlans.set('data_corruption', {
+      steps: [
+        'Identify corrupted data',
+        'Isolate from production',
+        'Restore from point-in-time backup',
+        'Replay transactions',
+        'Verify integrity'
+      ],
+      rto: 3600, // 1 hour
+      rpo: 300 // 5 minutes
+    });
+  }
+
+  async executeRecoveryPlan(planId) {
+    const plan = this.recoveryPlans.get(planId);
+    if (!plan) {
+      throw new Error(`Recovery plan ${planId} not found`);
+    }
+
+    console.log(`Executing recovery plan: ${planId}`);
+    this.currentRecovery = {
+      planId,
+      startedAt: new Date().toISOString(),
+      steps: [],
+      status: 'in_progress'
+    };
+
+    let success = true;
+    for (const step of plan.steps) {
+      try {
+        await this.executeStep(step);
+        this.currentRecovery.steps.push({
+          step,
+          status: 'completed',
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        success = false;
+        this.currentRecovery.steps.push({
+          step,
+          status: 'failed',
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
+        break;
+      }
+    }
+
+    this.currentRecovery.status = success ? 'completed' : 'failed';
+    this.currentRecovery.completedAt = new Date().toISOString();
+
+    // Log recovery attempt
+    await this.logRecoveryAttempt(this.currentRecovery);
+
+    // Notify team
+    await this.notifyRecoveryResult(this.currentRecovery);
+
+    return this.currentRecovery;
+  }
+
+  async executeStep(step) {
+    // Step 1: Failover to replica
+    if (step.includes('Failover')) {
+      await this.failoverToReplica();
+    }
+    // Step 2: Restore from backup
+    else if (step.includes('Restore')) {
+      await this.restoreFromBackup();
+    }
+    // Step 3: Verify integrity
+    else if (step.includes('Verify')) {
+      await this.verifySystemIntegrity();
+    }
+    // Step 4: Switch back
+    else if (step.includes('Switch')) {
+      await this.switchTraffic();
+    }
+    // Step 5: Scale resources
+    else if (step.includes('Scale')) {
+      await this.scaleResources();
+    }
+    // Step 6: Redirect traffic
+    else if (step.includes('Redirect')) {
+      await this.updateDNS();
+    }
+  }
+
+  async testRecovery() {
+    const testId = `recovery-test-${Date.now()}`;
+    
+    console.log(`Starting recovery test: ${testId}`);
+    
+    const testResults = {
+      testId,
+      timestamp: new Date().toISOString(),
+      scenarios: [],
+      duration: 0
+    };
+
+    // Test each recovery plan
+    for (const [planId, plan] of this.recoveryPlans) {
+      console.log(`Testing recovery plan: ${planId}`);
+      
+      const start = Date.now();
+      try {
+        // Simulate disaster
+        await this.simulateDisaster(planId);
+        
+        // Execute recovery plan
+        const result = await this.executeRecoveryPlan(planId);
+        
+        const duration = Date.now() - start;
+        
+        testResults.scenarios.push({
+          planId,
+          success: result.status === 'completed',
+          duration,
+          rtoMet: duration <= plan.rto * 1000,
+          rpoMet: plan.rpo <= 300 // Check if RPO met
+        });
+      } catch (error) {
+        testResults.scenarios.push({
+          planId,
+          success: false,
+          error: error.message
+        });
+      }
+    }
+
+    testResults.duration = Date.now() - new Date(testResults.timestamp).getTime();
+    testResults.completedAt = new Date().toISOString();
+
+    this.lastTestDate = testResults.timestamp;
+
+    // Generate test report
+    await this.generateTestReport(testResults);
+
+    return testResults;
+  }
+}
