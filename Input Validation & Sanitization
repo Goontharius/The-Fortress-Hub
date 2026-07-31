@@ -1,0 +1,39 @@
+// ❌ CURRENT ISSUE: No input validation
+const { userId, category } = req.body; // Direct usage = XSS + SQL injection risk
+
+// ✅ FIX: Comprehensive validation
+const Joi = require('joi');
+
+const receiptSchema = Joi.object({
+  userId: Joi.string().uuid().required(),
+  category: Joi.string().max(100).optional(),
+  notes: Joi.string().max(500).optional(),
+  metadata: Joi.object().optional()
+});
+
+// Validation middleware
+const validateRequest = (schema) => {
+  return (req, res, next) => {
+    const { error } = schema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        details: error.details.map(d => d.message)
+      });
+    }
+    next();
+  };
+};
+
+// Sanitize user input
+const sanitize = require('sanitize-html');
+
+const sanitizeInput = (input) => {
+  if (typeof input === 'string') {
+    return sanitize(input, {
+      allowedTags: [], // No HTML tags allowed
+      allowedAttributes: {}
+    });
+  }
+  return input;
+};
