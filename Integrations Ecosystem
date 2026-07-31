@@ -1,0 +1,64 @@
+// integrations/index.js
+const integrations = {
+  // Accounting Software
+  quickbooks: {
+    sync: async (userId, data) => {
+      await qbo.accounts.create({
+        name: 'Receipts',
+        entries: data.map(r => ({
+          date: r.date,
+          amount: r.total,
+          description: `${r.vendor} - ${r.category}`,
+          category: r.category
+        }))
+      });
+    }
+  },
+  
+  xero: {
+    sync: async (userId, data) => {
+      await xero.invoices.create(data.map(r => ({
+        date: r.date,
+        total: r.total,
+        reference: r.receiptNumber,
+        items: r.items
+      })));
+    }
+  },
+  
+  // Expense Management
+  expensify: {
+    export: async (userId, data) => {
+      return await expensify.reports.create({
+        title: `Fortress Hub - ${new Date().toISOString()}`,
+        expenses: data
+      });
+    }
+  },
+  
+  // Banking
+  plaid: {
+    syncTransactions: async (userId) => {
+      const transactions = await plaid.getTransactions(userId);
+      await matchWithReceipts(transactions);
+    }
+  },
+  
+  // Email & Communication
+  gmail: {
+    extractReceipts: async (userId) => {
+      const emails = await gmail.search('subject:receipt OR subject:invoice');
+      return emails.map(extractReceiptFromEmail);
+    }
+  },
+  
+  // Cloud Storage
+  dropbox: {
+    backup: async (userId, data) => {
+      await dropbox.files.upload({
+        path: `/fortress/${userId}/backup.json`,
+        contents: JSON.stringify(data)
+      });
+    }
+  }
+};
