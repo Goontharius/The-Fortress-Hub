@@ -123,3 +123,58 @@ docker-compose up -d
 
 # Access the application
 open http://localhost:3000
+```
+
+### Option 2: Local Development
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/the-fortress-hub.git
+cd the-fortress-hub
+
+# Install dependencies
+npm install
+
+# Copy configuration
+cp .env.example .env
+```
+
+Then run the services you need:
+
+```bash
+# Start backend
+npm run dev:backend
+
+# Start frontend
+npm run dev:frontend
+
+# Start mobile app
+npm run dev:mobile
+
+# Start desktop scaffold
+npm run dev:desktop
+```
+
+Open the web app at `http://localhost:3000` and use the mobile/desktop workflows as configured.
+
+### Run Tests
+
+```bash
+npm test
+```
+
+This runs the workspace smoke checks:
+
+- `src/backend`: build validation
+- `src/frontend`: build validation
+- `src/mobile`: placeholder test script
+- `src/desktop`: placeholder test script
+
+For package-specific checks, run:
+
+```bash
+npm run test:backend
+npm run test:frontend
+npm run test:mobile
+npm run test:desktop
+```

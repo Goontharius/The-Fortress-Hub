@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "The Fortress Hub Mobile",
+    "slug": "the-fortress-hub-mobile",
+    "platforms": ["ios", "android", "web"],
+    "extra": {
+      "apiBase": "http://localhost:4000",
+      "apiToken": "fortress-hub-api-token"
+    }
+  }
+}

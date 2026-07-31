@@ -1,0 +1,16 @@
+{
+  "name": "@fortress/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo \"Desktop scaffold ready\"",
+    "build": "echo \"Build steps can be added here\"",
+    "lint": "eslint . --ext .ts,.tsx",
+    "test": "node test/smoke.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.2",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0"
+  }
+}
