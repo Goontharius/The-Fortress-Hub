@@ -1,0 +1,265 @@
+// backend/services/historicalArchive.js
+class HistoricalArchiveService {
+  constructor() {
+    this.archiveBuckets = {
+      yearly: {},
+      quarterly: {},
+      monthly: {}
+    };
+    this.compressionEnabled = true;
+    this.encryptionEnabled = true;
+  }
+
+  // 1. Create yearly archive
+  async archiveYear(userId, year) {
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31);
+
+    // Get all receipts for the year
+    const receipts = await this.getReceiptsByDateRange(userId, startDate, endDate);
+
+    // Create archive package
+    const archive = {
+      userId,
+      year,
+      metadata: {
+        receiptCount: receipts.length,
+        totalSpent: receipts.reduce((sum, r) => sum + r.total, 0),
+        categories: this.aggregateCategories(receipts),
+        vendors: this.aggregateVendors(receipts),
+        monthlyBreakdown: this.getMonthlyBreakdown(receipts),
+        createdAt: new Date().toISOString(),
+        version: '1.0'
+      },
+      receipts: receipts.map(r => this.sanitizeReceipt(r))
+    };
+
+    // Compress data
+    let compressed = archive;
+    if (this.compressionEnabled) {
+      compressed = await this.compressArchive(archive);
+    }
+
+    // Encrypt
+    let encrypted = compressed;
+    if (this.encryptionEnabled) {
+      encrypted = await this.encryptArchive(compressed);
+    }
+
+    // Store in cold storage
+    const archiveId = await this.storeArchive(userId, year, encrypted);
+
+    // Update user's archive index
+    await this.updateArchiveIndex(userId, {
+      archiveId,
+      year,
+      receiptCount: receipts.length,
+      totalSpent: archive.metadata.totalSpent,
+      storedAt: new Date().toISOString()
+    });
+
+    // Generate archive summary
+    return {
+      archiveId,
+      year,
+      summary: archive.metadata,
+      location: await this.getArchiveLocation(archiveId)
+    };
+  }
+
+  // 2. Historical Data Viewer
+  async getHistoricalData(userId, filters) {
+    const {
+      year,
+      quarter,
+      month,
+      category,
+      vendor,
+      minAmount,
+      maxAmount,
+      searchTerm,
+      page = 1,
+      limit = 50
+    } = filters;
+
+    // Determine which storage tiers to query
+    const dateRange = this.getDateRangeFromFilters(year, quarter, month);
+    const tiers = this.determineTiers(dateRange);
+
+    let results = [];
+
+    // Query each tier
+    for (const tier of tiers) {
+      const tierData = await this.queryTier(userId, tier, {
+        dateRange,
+        category,
+        vendor,
+        minAmount,
+        maxAmount,
+        searchTerm
+      });
+      results = results.concat(tierData);
+    }
+
+    // Sort by date
+    results.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Apply pagination
+    const total = results.length;
+    const paginated = results.slice((page - 1) * limit, page * limit);
+
+    return {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      data: paginated,
+      sources: tiers,
+      queryTime: new Date().toISOString()
+    };
+  }
+
+  // 3. Full History Timeline
+  async getFullHistory(userId) {
+    // Get all archive indices
+    const archives = await this.getArchiveIndices(userId);
+
+    // Build comprehensive timeline
+    const timeline = {
+      userId,
+      summary: {
+        totalReceipts: 0,
+        totalSpent: 0,
+        earliestReceipt: null,
+        latestReceipt: null,
+        uniqueVendors: new Set(),
+        categories: new Set(),
+        years: []
+      },
+      years: {}
+    };
+
+    for (const archive of archives) {
+      const yearData = await this.getYearData(userId, archive.year);
+      
+      timeline.summary.totalReceipts += yearData.receiptCount;
+      timeline.summary.totalSpent += yearData.totalSpent;
+      
+      if (!timeline.summary.earliestReceipt || yearData.earliestDate < timeline.summary.earliestReceipt) {
+        timeline.summary.earliestReceipt = yearData.earliestDate;
+      }
+      if (!timeline.summary.latestReceipt || yearData.latestDate > timeline.summary.latestReceipt) {
+        timeline.summary.latestReceipt = yearData.latestDate;
+      }
+
+      yearData.vendors.forEach(v => timeline.summary.uniqueVendors.add(v));
+      yearData.categories.forEach(c => timeline.summary.categories.add(c));
+
+      timeline.years[archive.year] = yearData;
+      timeline.summary.years.push(archive.year);
+    }
+
+    // Convert Sets to Arrays
+    timeline.summary.uniqueVendors = Array.from(timeline.summary.uniqueVendors);
+    timeline.summary.categories = Array.from(timeline.summary.categories);
+
+    return timeline;
+  }
+
+  // 4. Cross-Year Comparison
+  async compareYears(userId, years) {
+    const comparisons = [];
+
+    for (const year of years) {
+      const yearData = await this.getYearData(userId, year);
+      comparisons.push({
+        year,
+        ...yearData
+      });
+    }
+
+    // Calculate trends
+    const trends = this.calculateTrends(comparisons);
+
+    return {
+      years: comparisons,
+      trends,
+      insights: this.generateYearlyInsights(comparisons)
+    };
+  }
+
+  calculateTrends(comparisons) {
+    const trends = {
+      spending: [],
+      receipts: [],
+      categories: [],
+      vendors: []
+    };
+
+    for (let i = 1; i < comparisons.length; i++) {
+      const current = comparisons[i];
+      const previous = comparisons[i - 1];
+
+      trends.spending.push({
+        year: current.year,
+        change: ((current.totalSpent - previous.totalSpent) / previous.totalSpent * 100).toFixed(1)
+      });
+
+      trends.receipts.push({
+        year: current.year,
+        change: ((current.receiptCount - previous.receiptCount) / previous.receiptCount * 100).toFixed(1)
+      });
+    }
+
+    return trends;
+  }
+
+  // 5. Generate Historical Reports
+  async generateHistoricalReport(userId, options) {
+    const {
+      startYear,
+      endYear,
+      format = 'pdf',
+      includeCharts = true,
+      includeTrends = true,
+      includeProjections = true
+    } = options;
+
+    const years = [];
+    for (let year = startYear; year <= endYear; year++) {
+      years.push(year);
+    }
+
+    const data = await this.compareYears(userId, years);
+
+    // Generate report
+    const report = {
+      title: `Historical Financial Report - ${startYear} to ${endYear}`,
+      generatedAt: new Date().toISOString(),
+      userId,
+      summary: {
+        totalSpent: data.years.reduce((sum, y) => sum + y.totalSpent, 0),
+        totalReceipts: data.years.reduce((sum, y) => sum + y.receiptCount, 0),
+        averageYearlySpending: data.years.reduce((sum, y) => sum + y.totalSpent, 0) / data.years.length,
+        totalVendors: new Set(data.years.flatMap(y => y.vendors)).size,
+        totalCategories: new Set(data.years.flatMap(y => y.categories)).size
+      },
+      yearlyBreakdown: data.years,
+      trends: data.trends,
+      insights: data.insights,
+      charts: includeCharts ? await this.generateCharts(data) : null,
+      projections: includeProjections ? await this.generateProjections(data) : null
+    };
+
+    // Export in requested format
+    if (format === 'pdf') {
+      return await this.exportPDF(report);
+    } else if (format === 'csv') {
+      return await this.exportCSV(report);
+    } else if (format === 'json') {
+      return report;
+    }
+
+    return report;
+  }
+}
