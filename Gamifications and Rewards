@@ -1,0 +1,91 @@
+// gamification/rewards.js
+class GamificationEngine {
+  constructor(userId) {
+    this.userId = userId;
+    this.points = 0;
+    this.level = 1;
+    this.badges = [];
+  }
+  
+  // Points system
+  pointsEvents = {
+    upload_receipt: 10,
+    categorize_correctly: 5,
+    stay_within_budget: 50,
+    submit_tax_report: 100,
+    review_months_analytics: 20,
+    refer_friend: 200,
+    first_receipt: 50,
+    streak_7_days: 100,
+    streak_30_days: 500,
+    perfect_month: 300
+  };
+  
+  // Badges
+  badges = {
+    'receipt_guru': { 
+      condition: 'receiptCount > 100',
+      icon: '📸',
+      description: 'Uploaded 100+ receipts'
+    },
+    'organized': { 
+      condition: 'categoriesCount > 10',
+      icon: '📊',
+      description: 'Used 10+ categories'
+    },
+    'budget_master': { 
+      condition: 'budgetAdherence > 0.9',
+      icon: '💰',
+      description: 'Stayed within budget 90% of months'
+    },
+    'tax_pro': { 
+      condition: 'taxReports > 5',
+      icon: '🧾',
+      description: 'Generated 5+ tax reports'
+    },
+    'early_bird': { 
+      condition: 'earlyReceipts > 30',
+      icon: '🌅',
+      description: 'Uploaded receipts early 30+ times'
+    },
+    'night_owl': { 
+      condition: 'nightReceipts > 30',
+      icon: '🦉',
+      description: 'Uploaded receipts at night 30+ times'
+    },
+    'power_user': { 
+      condition: 'allFeaturesUsed',
+      icon: '⚡',
+      description: 'Used all features'
+    },
+    'million_dollar': { 
+      condition: 'totalSpending > 1000000',
+      icon: '💎',
+      description: 'Tracked over $1M in spending'
+    }
+  };
+  
+  // Leaderboard
+  async getLeaderboard() {
+    return await db.query(`
+      SELECT 
+        user_id,
+        SUM(points) as total_points,
+        COUNT(DISTINCT badge_id) as badge_count,
+        RANK() OVER (ORDER BY SUM(points) DESC) as rank
+      FROM gamification
+      GROUP BY user_id
+      ORDER BY rank
+      LIMIT 100
+    `);
+  }
+  
+  // Daily challenges
+  dailyChallenges = [
+    { title: 'Upload 5 receipts', reward: 50, icon: '📸' },
+    { title: 'Categorize 10 receipts', reward: 30, icon: '🏷️' },
+    { title: 'Review analytics', reward: 20, icon: '📊' },
+    { title: 'Stay under budget', reward: 100, icon: '💰' },
+    { title: 'Share with team member', reward: 40, icon: '👥' }
+  ];
+}
