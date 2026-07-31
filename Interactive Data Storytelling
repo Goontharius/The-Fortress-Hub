@@ -1,0 +1,796 @@
+// frontend/src/components/DataStorytelling.jsx
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  ComposedChart, Line, Bar, Area, Pie, 
+  Radar, RadialBar, Treemap,
+  ResponsiveContainer, Tooltip, Legend,
+  Cell, Scatter, Sankey
+} from 'recharts';
+
+const DataStorytelling = ({ userId, data }) => {
+  const [storyMode, setStoryMode] = useState('auto');
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [insights, setInsights] = useState([]);
+
+  // AI-generated narrative
+  const generateNarrative = (data) => {
+    const narrative = {
+      title: "Your Financial Journey",
+      slides: [
+        {
+          title: "📈 Your Spending Evolution",
+          description: "Watch how your spending has evolved over time",
+          chart: "spendingEvolution",
+          insight: "You've spent ${total} over ${years} years",
+          recommendation: "Your spending has ${trend} by ${percent}%"
+        },
+        {
+          title: "🏷️ Category Deep Dive",
+          description: "Where does your money actually go?",
+          chart: "categoryBreakdown",
+          insight: "Your top category is ${topCategory} at ${percent}%",
+          recommendation: "Consider diversifying your spending"
+        },
+        {
+          title: "🏪 Vendor Relationships",
+          description: "Your most trusted vendors",
+          chart: "vendorAnalysis",
+          insight: "You've used ${vendorCount} different vendors",
+          recommendation: "Your most frequent vendor is ${topVendor}"
+        },
+        {
+          title: "📅 Seasonal Patterns",
+          description: "When do you spend the most?",
+          chart: "seasonalTrends",
+          insight: "Your peak spending month is ${peakMonth}",
+          recommendation: "Plan ahead for ${peakMonth} spending"
+        },
+        {
+          title: "💡 Smart Recommendations",
+          description: "AI-powered insights to optimize your spending",
+          chart: "recommendations",
+          insight: "You could save ${potentialSavings} by ${strategy}",
+          recommendation: "Try ${recommendedAction} to reduce costs"
+        }
+      ]
+    };
+
+    // Fill in dynamic values
+    narrative.slides = narrative.slides.map(slide => {
+      const filledSlide = { ...slide };
+      Object.keys(slide).forEach(key => {
+        if (typeof slide[key] === 'string') {
+          filledSlide[key] = slide[key]
+            .replace('${total}', data.summary.totalSpent.toFixed(2))
+            .replace('${years}', data.summary.years)
+            .replace('${trend}', data.trends.direction)
+            .replace('${percent}', data.trends.percentage)
+            .replace('${topCategory}', data.topCategory.name)
+            .replace('${topVendor}', data.topVendor.name)
+            .replace('${vendorCount}', data.uniqueVendors)
+            .replace('${peakMonth}', data.seasonal.peakMonth)
+            .replace('${potentialSavings}', data.potentialSavings.toFixed(2))
+            .replace('${strategy}', data.topStrategy)
+            .replace('${recommendedAction}', data.recommendation);
+        }
+      });
+      return filledSlide;
+    });
+
+    return narrative;
+  };
+
+  // 1. Spending Evolution Chart (Interactive Timeline)
+  const SpendingEvolution = ({ data }) => {
+    const [hoveredPoint, setHoveredPoint] = useState(null);
+
+    return (
+      <div className="evolution-container">
+        <div className="chart-header">
+          <h3>📈 Your Spending Journey</h3>
+          <div className="stats-highlights">
+            <span>Total: ${data.total.toFixed(2)}</span>
+            <span>Average: ${data.average.toFixed(2)}</span>
+            <span>Growth: {data.growth}%</span>
+          </div>
+        </div>
+
+        <ResponsiveContainer width="100%" height={400}>
+          <ComposedChart data={data.timeline}>
+            <defs>
+              <linearGradient id="spendGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            
+            <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+            <XAxis 
+              dataKey="date" 
+              tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+            />
+            <YAxis />
+            <Tooltip 
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const data = payload[0].payload;
+                  return (
+                    <div className="custom-tooltip">
+                      <div className="tooltip-date">{new Date(data.date).toLocaleDateString()}</div>
+                      <div className="tooltip-amount">${data.total.toFixed(2)}</div>
+                      <div className="tooltip-category">{data.category}</div>
+                      <div className="tooltip-vendor">{data.vendor}</div>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+            <Legend />
+            
+            {/* Area for trend visualization */}
+            <Area 
+              type="monotone" 
+              dataKey="total" 
+              fill="url(#spendGradient)" 
+              stroke="#8884d8" 
+              strokeWidth={2}
+              name="Spending"
+            />
+            
+            {/* Bar for monthly breakdown */}
+            <Bar 
+              dataKey="monthly" 
+              fill="#82ca9d" 
+              name="Monthly Average"
+              barSize={20}
+            />
+            
+            {/* Line for 3-month moving average */}
+            <Line 
+              type="monotone" 
+              dataKey="movingAverage" 
+              stroke="#ff7300" 
+              strokeWidth={3}
+              dot={false}
+              name="3-Month Average"
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+
+        {/* Interactive annotations */}
+        <div className="chart-annotations">
+          {data.annotations.map((annotation, index) => (
+            <motion.div 
+              key={index}
+              className="annotation-marker"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <div className="marker-dot" style={{ backgroundColor: annotation.color }} />
+              <div className="marker-content">
+                <div className="marker-date">{annotation.date}</div>
+                <div className="marker-text">{annotation.text}</div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // 2. Multi-Dimensional Category Analysis
+  const CategoryDeepDive = ({ data }) => {
+    const [selectedCategory, setSelectedCategory] = useState(null);
+
+    // Radar chart for category comparison
+    const CategoryRadar = ({ data }) => (
+      <ResponsiveContainer width="100%" height={300}>
+        <RadarChart data={data}>
+          <PolarGrid />
+          <PolarAngleAxis dataKey="category" />
+          <PolarRadiusAxis domain={[0, 100]} />
+          <Radar 
+            name="Spending" 
+            dataKey="value" 
+            stroke="#8884d8" 
+            fill="#8884d8" 
+            fillOpacity={0.6}
+          />
+          <Tooltip />
+        </RadarChart>
+      </ResponsiveContainer>
+    );
+
+    // Treemap for hierarchical view
+    const CategoryTreemap = ({ data }) => (
+      <ResponsiveContainer width="100%" height={400}>
+        <Treemap
+          data={data}
+          dataKey="value"
+          stroke="#fff"
+          fill="#8884d8"
+          content={<CustomizedTreemapContent />}
+        >
+          <Tooltip />
+        </Treemap>
+      </ResponsiveContainer>
+    );
+
+    // Custom treemap content
+    const CustomizedTreemapContent = ({ root, depth, x, y, width, height, index, payload, colors, rank, name }) => {
+      return (
+        <g>
+          <rect
+            x={x}
+            y={y}
+            width={width}
+            height={height}
+            style={{
+              fill: colors[index % colors.length],
+              stroke: '#fff',
+              strokeWidth: 2,
+              cursor: 'pointer'
+            }}
+            onClick={() => setSelectedCategory(payload)}
+          />
+          {width > 50 && height > 30 && (
+            <text
+              x={x + width / 2}
+              y={y + height / 2}
+              textAnchor="middle"
+              fill="#fff"
+              fontSize={14}
+              fontWeight="bold"
+            >
+              {payload.name}
+            </text>
+          )}
+          {width > 80 && height > 50 && (
+            <text
+              x={x + width / 2}
+              y={y + height / 2 + 20}
+              textAnchor="middle"
+              fill="#fff"
+              fontSize={12}
+            >
+              ${payload.value.toFixed(2)}
+            </text>
+          )}
+        </g>
+      );
+    };
+
+    return (
+      <div className="category-deepdive">
+        <div className="category-header">
+          <h3>🏷️ Category Deep Dive</h3>
+          <select onChange={(e) => setSelectedCategory(e.target.value)}>
+            <option value="">All Categories</option>
+            {data.categories.map(cat => (
+              <option key={cat.name} value={cat.name}>{cat.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="category-grid">
+          <div className="category-radar">
+            <h4>Category Comparison</h4>
+            <CategoryRadar data={data.radarData} />
+          </div>
+          <div className="category-treemap">
+            <h4>Hierarchical View</h4>
+            <CategoryTreemap data={data.treemapData} />
+          </div>
+        </div>
+
+        {/* Category Detail View */}
+        {selectedCategory && (
+          <motion.div 
+            className="category-detail"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+          >
+            <h4>📊 {selectedCategory} Analysis</h4>
+            <div className="detail-grid">
+              <div className="detail-stat">
+                <span>Total Spent</span>
+                <strong>${selectedCategory.total.toFixed(2)}</strong>
+              </div>
+              <div className="detail-stat">
+                <span>Receipts</span>
+                <strong>{selectedCategory.count}</strong>
+              </div>
+              <div className="detail-stat">
+                <span>Average</span>
+                <strong>${selectedCategory.average.toFixed(2)}</strong>
+              </div>
+              <div className="detail-stat">
+                <span>Trend</span>
+                <strong className={selectedCategory.trend > 0 ? 'up' : 'down'}>
+                  {selectedCategory.trend > 0 ? '↑' : '↓'} {Math.abs(selectedCategory.trend)}%
+                </strong>
+              </div>
+            </div>
+            
+            <div className="category-timeline">
+              <h5>Monthly Trend</h5>
+              <ResponsiveContainer width="100%" height={150}>
+                <LineChart data={selectedCategory.monthlyData}>
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="spent" stroke="#82ca9d" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="category-recommendations">
+              <h5>💡 Recommendations</h5>
+              <ul>
+                {selectedCategory.recommendations.map((rec, i) => (
+                  <li key={i}>{rec}</li>
+                ))}
+              </ul>
+            </div>
+          </motion.div>
+        )}
+      </div>
+    );
+  };
+
+  // 3. Vendor Relationship Network
+  const VendorNetwork = ({ data }) => {
+    const [selectedVendor, setSelectedVendor] = useState(null);
+
+    // Force-directed graph using D3
+    const VendorForceGraph = ({ data }) => {
+      // Implementation would use D3.js for network visualization
+      // Showing relationships between vendors, categories, and time
+      return (
+        <div className="force-graph-container">
+          <div className="graph-controls">
+            <button>🔍 Zoom In</button>
+            <button>🔍 Zoom Out</button>
+            <button>🔄 Reset View</button>
+          </div>
+          <svg width="100%" height="500" className="force-graph">
+            {/* Nodes */}
+            {data.nodes.map((node, i) => (
+              <g key={i} onClick={() => setSelectedVendor(node)}>
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r={node.size}
+                  fill={node.color}
+                  className="vendor-node"
+                />
+                <text x={node.x} y={node.y + node.size + 15} textAnchor="middle" fontSize="10">
+                  {node.name}
+                </text>
+              </g>
+            ))}
+            {/* Edges */}
+            {data.edges.map((edge, i) => (
+              <line
+                key={i}
+                x1={edge.source.x}
+                y1={edge.source.y}
+                x2={edge.target.x}
+                y2={edge.target.y}
+                stroke="#ccc"
+                strokeWidth={edge.value / 10}
+                opacity={0.6}
+              />
+            ))}
+          </svg>
+          <div className="graph-legend">
+            <span>● Nodes: Vendors</span>
+            <span>Lines: Transaction Volume</span>
+            <span>Size: Total Spend</span>
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div className="vendor-network">
+        <h3>🏪 Vendor Relationship Map</h3>
+        <div className="network-stats">
+          <div className="stat">Total Vendors: {data.totalVendors}</div>
+          <div className="stat">Top Vendor: {data.topVendor.name} (${data.topVendor.total.toFixed(2)})</div>
+          <div className="stat">Vendor Diversity: {data.diversityScore}/100</div>
+        </div>
+        
+        <VendorForceGraph data={data.graphData} />
+
+        {selectedVendor && (
+          <div className="vendor-detail">
+            <h4>{selectedVendor.name}</h4>
+            <div className="vendor-stats">
+              <div>Total: ${selectedVendor.total.toFixed(2)}</div>
+              <div>Receipts: {selectedVendor.count}</div>
+              <div>Average: ${selectedVendor.average.toFixed(2)}</div>
+              <div>First Purchase: {selectedVendor.firstPurchase}</div>
+              <div>Last Purchase: {selectedVendor.lastPurchase}</div>
+            </div>
+            <div className="vendor-trend">
+              <h5>Spending Trend</h5>
+              <ResponsiveContainer width="100%" height={100}>
+                <LineChart data={selectedVendor.timeline}>
+                  <Line type="monotone" dataKey="spent" stroke="#8884d8" />
+                  <Tooltip />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // 4. Seasonal Pattern Heatmap
+  const SeasonalHeatmap = ({ data }) => {
+    const [viewMode, setViewMode] = useState('monthly'); // monthly, quarterly, weekly
+
+    return (
+      <div className="seasonal-heatmap">
+        <h3>📅 Seasonal Spending Patterns</h3>
+        
+        <div className="heatmap-controls">
+          <button onClick={() => setViewMode('monthly')}>Monthly</button>
+          <button onClick={() => setViewMode('quarterly')}>Quarterly</button>
+          <button onClick={() => setViewMode('weekly')}>Weekly</button>
+        </div>
+
+        <div className="heatmap-container">
+          {viewMode === 'monthly' && (
+            <div className="monthly-heatmap">
+              {data.monthlyHeatmap.map((month, i) => (
+                <motion.div
+                  key={i}
+                  className="heatmap-cell"
+                  style={{
+                    backgroundColor: `rgba(136, 132, 216, ${month.value / 100})`,
+                    height: '60px',
+                    width: '60px'
+                  }}
+                  whileHover={{ scale: 1.1 }}
+                >
+                  <div className="cell-label">{month.name}</div>
+                  <div className="cell-value">${month.value.toFixed(2)}</div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="heatmap-insights">
+          <div className="insight-card">
+            <span>🏆 Peak Month</span>
+            <strong>{data.peakMonth}</strong>
+            <span>${data.peakAmount.toFixed(2)}</span>
+          </div>
+          <div className="insight-card">
+            <span>📉 Lowest Month</span>
+            <strong>{data.lowestMonth}</strong>
+            <span>${data.lowestAmount.toFixed(2)}</span>
+          </div>
+          <div className="insight-card">
+            <span>📊 Seasonal Variation</span>
+            <strong>{data.seasonalVariation}%</strong>
+            <span>High to Low difference</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // 5. Predictive Analytics Dashboard
+  const PredictiveInsights = ({ data }) => {
+    const [predictionHorizon, setPredictionHorizon] = useState(3);
+
+    return (
+      <div className="predictive-insights">
+        <h3>🔮 Predictive Analytics</h3>
+        
+        <div className="prediction-controls">
+          <label>Forecast Horizon:</label>
+          <select onChange={(e) => setPredictionHorizon(parseInt(e.target.value))}>
+            <option value={1}>1 Month</option>
+            <option value={3}>3 Months</option>
+            <option value={6}>6 Months</option>
+            <option value={12}>1 Year</option>
+          </select>
+        </div>
+
+        <div className="prediction-chart">
+          <ResponsiveContainer width="100%" height={300}>
+            <ComposedChart data={data.forecastData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Area 
+                type="monotone" 
+                dataKey="historical" 
+                fill="#8884d8" 
+                fillOpacity={0.3}
+                stroke="#8884d8"
+                name="Historical"
+              />
+              <Line 
+                type="monotone" 
+                dataKey="forecast" 
+                stroke="#ff7300" 
+                strokeDasharray="5 5"
+                name="Forecast"
+              />
+              <Area 
+                type="monotone" 
+                dataKey="upperBound" 
+                fill="#82ca9d" 
+                fillOpacity={0.1}
+                stroke="#82ca9d"
+                name="Upper Bound"
+              />
+              <Area 
+                type="monotone" 
+                dataKey="lowerBound" 
+                fill="#ffc658" 
+                fillOpacity={0.1}
+                stroke="#ffc658"
+                name="Lower Bound"
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="prediction-insights">
+          <div className="insight-item">
+            <span>📈 Predicted Spend</span>
+            <strong>${data.predictedTotal.toFixed(2)}</strong>
+            <span className={data.predictionTrend}>
+              {data.predictionTrend > 0 ? '↑' : '↓'} {Math.abs(data.predictionTrend)}%
+            </span>
+          </div>
+          <div className="insight-item">
+            <span>🎯 Confidence Level</span>
+            <strong>{data.confidenceLevel}%</strong>
+            <span>Based on {data.dataPoints} data points</span>
+          </div>
+          <div className="insight-item">
+            <span>💡 Recommendations</span>
+            <strong>{data.recommendations.length}</strong>
+            <span>Actionable insights</span>
+          </div>
+        </div>
+
+        <div className="recommendations-list">
+          <h4>💡 Smart Recommendations</h4>
+          {data.recommendations.map((rec, i) => (
+            <motion.div 
+              key={i}
+              className="recommendation-item"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.1 }}
+            >
+              <span className="rec-icon">{rec.icon}</span>
+              <div className="rec-content">
+                <div className="rec-title">{rec.title}</div>
+                <div className="rec-description">{rec.description}</div>
+                <div className="rec-impact">
+                  <span>Potential Savings: ${rec.potentialSavings.toFixed(2)}</span>
+                  <span className="rec-priority">{rec.priority}</span>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // 6. Interactive Timeline Explorer
+  const TimelineExplorer = ({ data }) => {
+    const [zoomLevel, setZoomLevel] = useState('yearly');
+    const [selectedTimeRange, setSelectedTimeRange] = useState(null);
+
+    return (
+      <div className="timeline-explorer">
+        <h3>⏳ Interactive Timeline Explorer</h3>
+        
+        <div className="timeline-controls">
+          <button onClick={() => setZoomLevel('yearly')}>Year</button>
+          <button onClick={() => setZoomLevel('quarterly')}>Quarter</button>
+          <button onClick={() => setZoomLevel('monthly')}>Month</button>
+          <button onClick={() => setZoomLevel('weekly')}>Week</button>
+          <button onClick={() => setZoomLevel('daily')}>Day</button>
+        </div>
+
+        <div className="timeline-visualization">
+          {/* Zoomable timeline using D3 */}
+          <div className="timeline-slider">
+            <input 
+              type="range" 
+              min={data.startYear} 
+              max={data.endYear} 
+              step={1}
+              className="timeline-range"
+              value={data.currentYear}
+              onChange={(e) => setSelectedTimeRange(e.target.value)}
+            />
+          </div>
+
+          <div className="timeline-events">
+            {data.events.map((event, i) => (
+              <motion.div
+                key={i}
+                className="timeline-event"
+                style={{
+                  left: `${(event.year - data.startYear) / (data.endYear - data.startYear) * 100}%`
+                }}
+                whileHover={{ scale: 1.1 }}
+              >
+                <div className="event-marker" style={{ backgroundColor: event.color }} />
+                <div className="event-popup">
+                  <div className="event-date">{event.date}</div>
+                  <div className="event-title">{event.title}</div>
+                  <div className="event-amount">${event.amount.toFixed(2)}</div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // 7. Anomaly Detection Display
+  const AnomalyDetector = ({ data }) => {
+    return (
+      <div className="anomaly-detector">
+        <h3>🚨 Spending Anomalies</h3>
+        
+        <div className="anomaly-grid">
+          {data.anomalies.map((anomaly, i) => (
+            <motion.div
+              key={i}
+              className="anomaly-card"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.1 }}
+            >
+              <div className="anomaly-header">
+                <span className="anomaly-icon">{anomaly.icon}</span>
+                <span className="anomaly-type">{anomaly.type}</span>
+              </div>
+              <div className="anomaly-body">
+                <div className="anomaly-date">{anomaly.date}</div>
+                <div className="anomaly-amount">${anomaly.amount.toFixed(2)}</div>
+                <div className="anomaly-reason">{anomaly.reason}</div>
+              </div>
+              <div className="anomaly-footer">
+                <button className="btn-details">View Details</button>
+                <button className="btn-dismiss">Dismiss</button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // 8. Comparative Analysis View
+  const ComparativeAnalysis = ({ data }) => {
+    return (
+      <div className="comparative-analysis">
+        <h3>📊 Comparative Analysis</h3>
+        
+        <div className="comparison-grid">
+          <div className="comparison-card">
+            <h4>Year over Year</h4>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={data.yoyData}>
+                <XAxis dataKey="year" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="spent" fill="#8884d8" />
+                <Bar dataKey="receipts" fill="#82ca9d" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="comparison-card">
+            <h4>Peer Comparison</h4>
+            <div className="peer-comparison">
+              {data.peers.map((peer, i) => (
+                <div key={i} className="peer-item">
+                  <div className="peer-name">{peer.name}</div>
+                  <div className="peer-bar">
+                    <div 
+                      className="peer-fill" 
+                      style={{ width: `${peer.percentage}%` }}
+                    />
+                  </div>
+                  <div className="peer-value">${peer.value.toFixed(2)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="comparison-card">
+            <h4>Industry Benchmarks</h4>
+            <div className="benchmarks">
+              {data.benchmarks.map((benchmark, i) => (
+                <div key={i} className="benchmark-item">
+                  <div className="benchmark-label">{benchmark.label}</div>
+                  <div className="benchmark-value">
+                    <span className="user-value">${benchmark.userValue.toFixed(2)}</span>
+                    <span className="benchmark-avg">vs ${benchmark.avgValue.toFixed(2)}</span>
+                    <span className={`benchmark-status ${benchmark.status}`}>
+                      {benchmark.status === 'above' ? '↑' : '↓'} {Math.abs(benchmark.percentage)}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Main render
+  return (
+    <div className="data-storytelling">
+      <div className="storytelling-header">
+        <h1>📊 Interactive Data Insights</h1>
+        <div className="story-controls">
+          <button onClick={() => setStoryMode('auto')}>Auto-Play</button>
+          <button onClick={() => setStoryMode('manual')}>Manual</button>
+          <button onClick={() => setStoryMode('explore')}>Explore</button>
+        </div>
+      </div>
+
+      <div className="storytelling-content">
+        <AnimatePresence mode="wait">
+          {storyMode === 'auto' && (
+            <motion.div
+              key="auto"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <SpendingEvolution data={data.evolution} />
+              <CategoryDeepDive data={data.categories} />
+              <VendorNetwork data={data.vendors} />
+              <SeasonalHeatmap data={data.seasonal} />
+              <PredictiveInsights data={data.predictions} />
+              <TimelineExplorer data={data.timeline} />
+              <AnomalyDetector data={data.anomalies} />
+              <ComparativeAnalysis data={data.comparisons} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="storytelling-footer">
+        <div className="progress-bar">
+          <div className="progress-fill" style={{ width: `${(currentSlide / 8) * 100}%` }} />
+        </div>
+        <div className="navigation">
+          <button onClick={() => setCurrentSlide(Math.max(0, currentSlide - 1))}>← Previous</button>
+          <span>{currentSlide + 1} / 8</span>
+          <button onClick={() => setCurrentSlide(Math.min(7, currentSlide + 1))}>Next →</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default DataStorytelling;
