@@ -1,0 +1,75 @@
+version: 2
+updates:
+  # Backend dependencies
+  - package-ecosystem: "npm"
+    directory: "/src/backend"
+    schedule:
+      interval: "daily"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "backend"
+    versioning-strategy: auto
+    ignore:
+      - dependency-name: "typescript"
+        versions: ["5.x"]
+    commit-message:
+      prefix: "fix"
+      prefix-development: "chore"
+      include: "scope"
+
+  # Frontend dependencies
+  - package-ecosystem: "npm"
+    directory: "/src/frontend"
+    schedule:
+      interval: "daily"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "frontend"
+    versioning-strategy: auto
+    commit-message:
+      prefix: "fix"
+      prefix-development: "chore"
+      include: "scope"
+
+  # Mobile dependencies
+  - package-ecosystem: "npm"
+    directory: "/src/mobile"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "mobile"
+    versioning-strategy: auto
+
+  # Desktop dependencies
+  - package-ecosystem: "npm"
+    directory: "/src/desktop"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "desktop"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+      - "github-actions"
