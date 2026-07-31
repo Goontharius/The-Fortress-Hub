@@ -1,0 +1,20 @@
+the-fortress-hub/
+├── LICENSE                           # Main license
+├── licenses/
+│   ├── MIT.md                       # MIT license text
+│   ├── Apache-2.0.md               # Apache 2.0 license
+│   ├── GPL-3.0.md                  # GPL v3 license
+│   ├── commercial.md               # Commercial license
+│   ├── third-party/
+│   │   ├── express-license.txt     # Third-party dependencies
+│   │   ├── react-license.txt
+│   │   └── node-license.txt
+│   └── NOTICE.md                   # Additional notices
+├── src/
+│   ├── backend/
+│   │   └── LICENSE                 # Backend-specific license
+│   ├── frontend/
+│   │   └── LICENSE                 # Frontend-specific license
+│   └── mobile/
+│       └── LICENSE                 # Mobile-specific license
+└── package.json                     # License field
