@@ -1,0 +1,87 @@
+// backend/services/reportGenerator.js
+class AdvancedReportGenerator {
+  constructor() {
+    this.reportTemplates = {
+      executive: {
+        title: 'Executive Summary',
+        sections: ['overview', 'highlights', 'trends', 'recommendations'],
+        format: 'professional'
+      },
+      detailed: {
+        title: 'Detailed Analysis',
+        sections: ['all_data', 'categories', 'vendors', 'seasonal', 'anomalies'],
+        format: 'comprehensive'
+      },
+      tax: {
+        title: 'Tax Report',
+        sections: ['deductions', 'category_summary', 'yearly_totals'],
+        format: 'tax_ready'
+      },
+      visual: {
+        title: 'Visual Dashboard',
+        sections: ['charts', 'graphs', 'heatmaps', 'timeline'],
+        format: 'visual'
+      }
+    };
+  }
+
+  async generateReport(userId, template, customizations = {}) {
+    const templateConfig = this.reportTemplates[template];
+    const data = await this.gatherData(userId);
+
+    const report = {
+      metadata: {
+        generated: new Date().toISOString(),
+        template: template,
+        userId: userId,
+        version: '1.0'
+      },
+      sections: []
+    };
+
+    for (const section of templateConfig.sections) {
+      const sectionData = await this.generateSection(section, data, customizations);
+      report.sections.push(sectionData);
+    }
+
+    // Apply customizations
+    if (customizations.theme) {
+      report.theme = customizations.theme;
+    }
+    if (customizations.logo) {
+      report.logo = customizations.logo;
+    }
+    if (customizations.company) {
+      report.company = customizations.company;
+    }
+
+    // Generate in requested format
+    const formats = customizations.format || 'pdf';
+    return this.exportReport(report, formats);
+  }
+
+  async generateSection(section, data, customizations) {
+    switch (section) {
+      case 'overview':
+        return this.generateOverview(data);
+      case 'highlights':
+        return this.generateHighlights(data);
+      case 'trends':
+        return this.generateTrendsSection(data);
+      case 'recommendations':
+        return this.generateRecommendationsSection(data);
+      case 'categories':
+        return this.generateCategorySection(data);
+      case 'vendors':
+        return this.generateVendorSection(data);
+      case 'seasonal':
+        return this.generateSeasonalSection(data);
+      case 'anomalies':
+        return this.generateAnomalySection(data);
+      case 'deductions':
+        return this.generateDeductionSection(data);
+      default:
+        return null;
+    }
+  }
+}
