@@ -1,0 +1,51 @@
+// ❌ CURRENT ISSUE: No file validation beyond mime type
+const upload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    // Only checks MIME type - can be spoofed
+  }
+});
+
+// ✅ FIX: Comprehensive file security
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB
+    files: 1 // Only 1 file per request
+  },
+  fileFilter: async (req, file, cb) => {
+    try {
+      // 1. Check actual file type with magic numbers
+      const buffer = file.buffer || Buffer.from([]);
+      const fileType = await fileType.fromBuffer(buffer);
+      
+      if (!fileType || !['image/jpeg', 'image/png', 'image/heic', 'image/heif'].includes(fileType.mime)) {
+        return cb(new Error('Invalid file type'), false);
+      }
+      
+      // 2. Check for malicious content (image bombs)
+      if (buffer.length > 10 * 1024 * 1024) {
+        return cb(new Error('File too large'), false);
+      }
+      
+      // 3. Virus scan (if enabled)
+      if (process.env.ENABLE_VIRUS_SCAN === 'true') {
+        const isClean = await scanForViruses(buffer);
+        if (!isClean) {
+          return cb(new Error('File failed virus scan'), false);
+        }
+      }
+      
+      // 4. Image integrity check
+      try {
+        await sharp(buffer).metadata();
+      } catch (error) {
+        return cb(new Error('Corrupted image file'), false);
+      }
+      
+      cb(null, true);
+    } catch (error) {
+      cb(error, false);
+    }
+  }
+});
