@@ -1,0 +1,55 @@
+// social/community.js
+class CommunityFeatures {
+  // Share receipts/summaries
+  async shareInsight(userId, insightId, platform) {
+    const insight = await getInsight(insightId);
+    
+    const shareData = {
+      title: `My spending insight from Fortress Hub`,
+      text: `I saved $${insight.savings} by ${insight.strategy}. Track your spending too!`,
+      url: `https://fortresshub.com/insights/${insightId}`
+    };
+    
+    if (platform === 'twitter') {
+      await shareTwitter(shareData);
+    } else if (platform === 'linkedin') {
+      await shareLinkedIn(shareData);
+    }
+  }
+  
+  // Community benchmarks
+  async getBenchmarks(userId) {
+    const userData = await getUserData(userId);
+    const industryAvg = await getIndustryAverages(userData.industry);
+    
+    return {
+      spending: {
+        user: userData.totalSpending,
+        average: industryAvg.spending,
+        percentile: this.calculatePercentile(userData.totalSpending, industryAvg)
+      },
+      categories: {
+        user: userData.categoryDistribution,
+        average: industryAvg.categoryDistribution
+      },
+      savings: {
+        user: userData.savingsRate,
+        average: industryAvg.savingsRate,
+        recommendations: this.getRecommendations(userData, industryAvg)
+      }
+    };
+  }
+  
+  // Mentorship/matchmaking
+  async findMentor(userId) {
+    const user = await getUser(userId);
+    const mentors = await findUsers({
+      experience: '5+ years',
+      industry: user.industry,
+      successRate: '> 80%',
+      availability: true
+    });
+    
+    return this.matchAlgo(user, mentors);
+  }
+}
