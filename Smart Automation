@@ -1,0 +1,64 @@
+// automation/rules.js
+class AutomationEngine {
+  constructor(userId) {
+    this.userId = userId;
+    this.rules = [];
+  }
+  
+  // User-defined rules
+  createRule(condition, action) {
+    this.rules.push({ condition, action });
+  }
+  
+  // Pre-built rule templates
+  static templates = {
+    // When receipt > $1000, request approval
+    largePurchase: {
+      condition: (r) => r.total > 1000,
+      action: async (r) => {
+        await sendApprovalRequest(r);
+        await notifyManager(r);
+      }
+    },
+    
+    // When duplicate detected, flag and notify
+    duplicateDetection: {
+      condition: async (r) => await isDuplicate(r),
+      action: async (r) => {
+        await markAsDuplicate(r);
+        await alertUser(r);
+      }
+    },
+    
+    // Monthly budget alert
+    budgetAlert: {
+      condition: async (r) => {
+        const monthly = await getMonthlySpending(r.userId);
+        const budget = await getBudget(r.userId);
+        return monthly + r.total > budget * 0.8;
+      },
+      action: async (r) => {
+        await sendBudgetWarning(r);
+        await suggestAlternatives(r);
+      }
+    },
+    
+    // Tax deduction reminder
+    taxDeduction: {
+      condition: (r) => r.category === 'supplies' || r.category === 'equipment',
+      action: async (r) => {
+        await tagForTax(r);
+        await addToTaxReport(r);
+      }
+    }
+  };
+  
+  // Trigger automation
+  async processReceipt(receipt) {
+    for (const rule of this.rules) {
+      if (await this.evaluateCondition(rule.condition, receipt)) {
+        await this.executeAction(rule.action, receipt);
+      }
+    }
+  }
+}
