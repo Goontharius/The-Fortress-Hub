@@ -1,0 +1,89 @@
+// backend/services/storageTier.js
+class StorageTierService {
+  constructor() {
+    this.tiers = {
+      HOT: {
+        name: 'Hot Storage',
+        storage: 'PostgreSQL',
+        retention: '90 days',
+        accessSpeed: 'milliseconds',
+        cost: 'high',
+        indexType: 'full'
+      },
+      WARM: {
+        name: 'Warm Storage', 
+        storage: 'TimescaleDB',
+        retention: '2 years',
+        accessSpeed: 'seconds',
+        cost: 'medium',
+        indexType: 'compressed'
+      },
+      COLD: {
+        name: 'Cold Storage',
+        storage: 'AWS S3 Glacier',
+        retention: '7+ years',
+        accessSpeed: 'minutes to hours',
+        cost: 'very low',
+        indexType: 'metadata_only'
+      },
+      ARCHIVE: {
+        name: 'Archive Storage',
+        storage: 'AWS S3 Glacier Deep Archive',
+        retention: 'Indefinite',
+        accessSpeed: 'hours to days',
+        cost: 'minimal',
+        indexType: 'metadata_only'
+      }
+    };
+  }
+
+  // Automatic tier assignment based on data age
+  async assignStorageTier(receipt) {
+    const age = Date.now() - new Date(receipt.createdAt).getTime();
+    const daysOld = age / (1000 * 60 * 60 * 24);
+
+    let tier;
+    if (daysOld < 90) {
+      tier = this.tiers.HOT;
+    } else if (daysOld < 730) {
+      tier = this.tiers.WARM;
+    } else if (daysOld < 2555) { // 7 years
+      tier = this.tiers.COLD;
+    } else {
+      tier = this.tiers.ARCHIVE;
+    }
+
+    return tier;
+  }
+
+  // Move data between tiers
+  async moveToTier(receiptId, targetTier) {
+    const receipt = await this.getReceipt(receiptId);
+    const currentTier = receipt.storageTier;
+
+    if (currentTier === targetTier) return;
+
+    // Extract from current tier
+    const data = await this.extractFromTier(receiptId, currentTier);
+
+    // Store in target tier
+    await this.storeInTier(receiptId, data, targetTier);
+
+    // Update metadata
+    await this.updateReceiptMetadata(receiptId, {
+      storageTier: targetTier,
+      movedAt: new Date().toISOString(),
+      previousTier: currentTier
+    });
+
+    // Log the move
+    await this.logStorageMove(receiptId, currentTier, targetTier);
+
+    return {
+      receiptId,
+      from: currentTier,
+      to: targetTier,
+      timestamp: new Date().toISOString()
+    };
+  }
+}
