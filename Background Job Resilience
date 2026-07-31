@@ -1,0 +1,59 @@
+// ❌ CURRENT ISSUE: No retry with backoff, no dead letter queue
+const receiptQueue = new Queue('receipt processing', { connection: config.redis });
+
+// ✅ FIX: Robust job handling
+const receiptQueue = new Queue('receipt processing', {
+  connection: config.redis,
+  defaultJobOptions: {
+    attempts: 5, // More retries
+    backoff: {
+      type: 'exponential',
+      delay: 1000 // Start with 1s, double each time
+    },
+    timeout: 120000, // 2 minute timeout
+    removeOnComplete: 100, // Keep last 100 completed jobs
+    removeOnFail: 1000 // Keep last 1000 failed jobs
+  }
+});
+
+// Dead letter queue for failed jobs
+const deadLetterQueue = new Queue('dead-letter', {
+  connection: config.redis
+});
+
+// Job monitoring
+worker.on('failed', async (job, err) => {
+  console.error(`Job ${job.id} failed after ${job.attemptsMade} attempts`);
+  
+  // Move to dead letter queue if max attempts exceeded
+  if (job.attemptsMade >= job.opts.attempts) {
+    await deadLetterQueue.add('failed-job', {
+      originalJob: job.data,
+      error: err.message,
+      stack: err.stack,
+      timestamp: new Date().toISOString(),
+      attempts: job.attemptsMade
+    });
+  }
+  
+  // Send alert if critical
+  if (job.data.critical) {
+    await sendAlert({
+      type: 'critical_job_failure',
+      jobId: job.id,
+      error: err.message
+    });
+  }
+});
+
+// Job health check
+const jobHealthCheck = async () => {
+  const failedCount = await deadLetterQueue.getJobCounts();
+  if (failedCount.waiting > 10) {
+    await sendAlert({
+      type: 'high_failure_rate',
+      count: failedCount.waiting
+    });
+  }
+};
+setInterval(jobHealthCheck, 60000);
