@@ -1,0 +1,125 @@
+// backend/services/smartSearch.js
+class SmartSearchEngine {
+  constructor() {
+    this.searchTemplates = {
+      // Time-based queries
+      temporal: [
+        'show me receipts from {time}',
+        'what did I spend in {time}',
+        'receipts between {start} and {end}'
+      ],
+      // Vendor queries
+      vendor: [
+        'all receipts from {vendor}',
+        'spending at {vendor}',
+        'receipts with {vendor}'
+      ],
+      // Category queries
+      category: [
+        '{category} spending',
+        'how much on {category}',
+        'receipts for {category}'
+      ],
+      // Amount queries
+      amount: [
+        'receipts over ${amount}',
+        'spending under ${amount}',
+        'receipts between ${min} and ${max}'
+      ],
+      // Complex queries
+      complex: [
+        'show me {vendor} receipts over ${amount} in {time}',
+        'what did I spend on {category} at {vendor}',
+        'compare {year1} and {year2} spending'
+      ]
+    };
+
+    this.responseTemplates = {
+      summary: '📊 {insight}',
+      trend: '📈 {trend}',
+      recommendation: '💡 {recommendation}',
+      alert: '🚨 {alert}'
+    };
+  }
+
+  async processQuery(userId, query) {
+    // Parse natural language
+    const parsed = await this.parseQuery(query);
+    
+    // Execute search
+    const results = await this.executeSearch(userId, parsed);
+    
+    // Generate response
+    const response = await this.generateResponse(results, parsed);
+    
+    // Create visualizations
+    const visualizations = this.createVisualizations(results);
+    
+    return {
+      query,
+      parsed,
+      results,
+      response,
+      visualizations,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  async parseQuery(query) {
+    // Use AI to understand query
+    const model = config.genAI.getGenerativeModel({ 
+      model: 'gemini-1.5-flash' 
+    });
+
+    const prompt = `
+      Parse this natural language query for a receipt database:
+      "${query}"
+      
+      Return JSON with:
+      - intent: (search|compare|analyze|summarize|alert)
+      - filters: { vendors: [], categories: [], minAmount, maxAmount, startDate, endDate }
+      - timeRange: { start, end }
+      - aggregation: (none|daily|weekly|monthly|yearly)
+      - sortBy: (date|amount|vendor)
+      - limit: number
+    `;
+
+    const result = await model.generateContent(prompt);
+    return JSON.parse(result.response.text());
+  }
+
+  createVisualizations(results) {
+    const visualizations = [];
+
+    // Time series chart
+    if (results.length > 0) {
+      visualizations.push({
+        type: 'line',
+        title: 'Spending Trend',
+        data: this.prepareTimeSeries(results)
+      });
+    }
+
+    // Category distribution
+    const categories = this.aggregateCategories(results);
+    if (categories.length > 1) {
+      visualizations.push({
+        type: 'pie',
+        title: 'Category Distribution',
+        data: categories
+      });
+    }
+
+    // Vendor analysis
+    const vendors = this.aggregateVendors(results);
+    if (vendors.length > 1) {
+      visualizations.push({
+        type: 'bar',
+        title: 'Top Vendors',
+        data: vendors.slice(0, 10)
+      });
+    }
+
+    return visualizations;
+  }
+}
