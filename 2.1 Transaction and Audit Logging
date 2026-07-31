@@ -1,0 +1,154 @@
+// backend/services/audit.js
+class AuditService {
+  constructor() {
+    this.logs = [];
+    this.retentionDays = 365;
+    this.batchSize = 100;
+  }
+
+  // 1. Comprehensive Audit Logging
+  async log(entry) {
+    const auditEntry = {
+      id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      userId: entry.userId || null,
+      sessionId: entry.sessionId || null,
+      ip: entry.ip || null,
+      userAgent: entry.userAgent || null,
+      action: entry.action,
+      resource: entry.resource,
+      resourceId: entry.resourceId,
+      details: entry.details || {},
+      changes: entry.changes || null,
+      before: entry.before || null,
+      after: entry.after || null,
+      result: entry.result || 'success',
+      error: entry.error || null,
+      correlationId: entry.correlationId || crypto.randomUUID(),
+      severity: entry.severity || 'info'
+    };
+
+    // Store in database
+    await this.storeAuditEntry(auditEntry);
+
+    // If critical, trigger alert
+    if (this.isCritical(entry)) {
+      await this.triggerAlert(auditEntry);
+    }
+
+    this.logs.push(auditEntry);
+
+    // Batch write if needed
+    if (this.logs.length >= this.batchSize) {
+      await this.flushLogs();
+    }
+
+    return auditEntry;
+  }
+
+  async storeAuditEntry(entry) {
+    const query = `
+      INSERT INTO audit_logs (
+        id, timestamp, user_id, session_id, ip, user_agent,
+        action, resource, resource_id, details, changes,
+        before_state, after_state, result, error, correlation_id, severity
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+    `;
+
+    await pgPool.query(query, [
+      entry.id,
+      entry.timestamp,
+      entry.userId,
+      entry.sessionId,
+      entry.ip,
+      entry.userAgent,
+      entry.action,
+      entry.resource,
+      entry.resourceId,
+      JSON.stringify(entry.details),
+      JSON.stringify(entry.changes || {}),
+      JSON.stringify(entry.before || {}),
+      JSON.stringify(entry.after || {}),
+      entry.result,
+      entry.error,
+      entry.correlationId,
+      entry.severity
+    ]);
+  }
+
+  isCritical(entry) {
+    const criticalActions = [
+      'user.delete', 'role.change', 'permission.grant',
+      'data.export', 'config.change', 'system.restart'
+    ];
+    return criticalActions.includes(entry.action) || entry.severity === 'critical';
+  }
+
+  async triggerAlert(entry) {
+    await sendAlert({
+      type: 'security_audit',
+      priority: 'high',
+      entry,
+      message: `Critical audit event: ${entry.action}`
+    });
+  }
+
+  // 2. Immutable Audit Trail
+  async createImmutableEntry(entry) {
+    const hash = this.createHash(entry);
+    const blockchainEntry = {
+      ...entry,
+      hash,
+      previousHash: this.getLastHash()
+    };
+    
+    // Store in immutable ledger (could be blockchain/ledger database)
+    await this.immutableStore.save(blockchainEntry);
+    this.lastHash = hash;
+
+    return blockchainEntry;
+  }
+
+  createHash(entry) {
+    const data = JSON.stringify(entry);
+    return crypto.createHash('sha512')
+      .update(data)
+      .update(process.env.AUDIT_SECRET)
+      .digest('hex');
+  }
+
+  // 3. Regulatory Compliance
+  compliance = {
+    gdpr: {
+      rightToAccess: async (userId) => {
+        return await this.getUserData(userId);
+      },
+      rightToErasure: async (userId) => {
+        await this.anonymizeUserData(userId);
+        await this.log({ 
+          action: 'gdpr.rightToErasure', 
+          userId,
+          details: { timestamp: new Date().toISOString() }
+        });
+      },
+      dataPortability: async (userId) => {
+        const data = await this.getUserData(userId);
+        return this.formatForExport(data, 'json');
+      }
+    },
+    hipaa: {
+      encryptAllPHI: true,
+      auditAccess: true,
+      breachNotification: async (breach) => {
+        await this.notifyAffectedUsers(breach);
+        await this.reportBreach(breach);
+      }
+    },
+    pci: {
+      tokenizeCards: true,
+      noStoreCVV: true,
+      quarterlyScan: true,
+      encryptionAtRest: true
+    }
+  };
+}
