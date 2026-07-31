@@ -1,5 +1,5 @@
-import { Receipt } from '../models/receipt';
-import * as sqliteStore from './sqliteStore';
+import { Receipt } from "../models/receipt";
+import * as sqliteStore from "./sqliteStore";
 
 export const listReceipts = sqliteStore.listReceipts;
 export const getReceipt = sqliteStore.getReceipt;

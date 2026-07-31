@@ -1,0 +1,7 @@
+{
+  "display": "standalone",
+  "lang": "en",
+  "name": "The Fortress Hub Mobile",
+  "short_name": "The Fortress Hub Mobile",
+  "start_url": "/?utm_source=web_app_manifest"
+}

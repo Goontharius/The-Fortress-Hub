@@ -1,15 +1,17 @@
-import sqlite3 from 'sqlite3';
-import { open, Database } from 'sqlite';
-import { Receipt } from '../models/receipt';
+import sqlite3 from "sqlite3";
+import { open, Database } from "sqlite";
+import { Receipt } from "../models/receipt";
 
 let db: Database<sqlite3.Database, sqlite3.Statement> | null = null;
 
-export async function openDb(): Promise<Database<sqlite3.Database, sqlite3.Statement>> {
+export async function openDb(): Promise<
+  Database<sqlite3.Database, sqlite3.Statement>
+> {
   if (db) return db;
 
   db = await open({
-    filename: './data/receipts.db',
-    driver: sqlite3.Database
+    filename: "./data/receipts.db",
+    driver: sqlite3.Database,
   });
 
   await db.exec(`
@@ -42,10 +44,13 @@ function mapRow(row: any): Receipt {
     notes: row.notes ?? undefined,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
-    source: row.sourceFilename || row.sourceUploadedAt ? {
-      filename: row.sourceFilename ?? undefined,
-      uploadedAt: row.sourceUploadedAt ?? undefined
-    } : undefined
+    source:
+      row.sourceFilename || row.sourceUploadedAt
+        ? {
+            filename: row.sourceFilename ?? undefined,
+            uploadedAt: row.sourceUploadedAt ?? undefined,
+          }
+        : undefined,
   };
 }
 
@@ -61,14 +66,16 @@ export async function getReceipt(id: string): Promise<Receipt | undefined> {
   return row ? mapRow(row) : undefined;
 }
 
-export async function createReceipt(data: Omit<Receipt, 'id' | 'createdAt' | 'updatedAt'>): Promise<Receipt> {
+export async function createReceipt(
+  data: Omit<Receipt, "id" | "createdAt" | "updatedAt">,
+): Promise<Receipt> {
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   const now = new Date().toISOString();
   const receipt: Receipt = {
     ...data,
     id,
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
   };
 
   const db = await openDb();
@@ -85,7 +92,7 @@ export async function createReceipt(data: Omit<Receipt, 'id' | 'createdAt' | 'up
     receipt.createdAt,
     receipt.updatedAt,
     receipt.source?.filename ?? null,
-    receipt.source?.uploadedAt ?? null
+    receipt.source?.uploadedAt ?? null,
   );
 
   return receipt;
@@ -93,7 +100,7 @@ export async function createReceipt(data: Omit<Receipt, 'id' | 'createdAt' | 'up
 
 export async function updateReceipt(
   id: string,
-  data: Partial<Omit<Receipt, 'id' | 'createdAt' | 'updatedAt'>>
+  data: Partial<Omit<Receipt, "id" | "createdAt" | "updatedAt">>,
 ): Promise<Receipt | undefined> {
   const existing = await getReceipt(id);
   if (!existing) {
@@ -103,7 +110,7 @@ export async function updateReceipt(
   const updated: Receipt = {
     ...existing,
     ...data,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
 
   const db = await openDb();
@@ -118,7 +125,7 @@ export async function updateReceipt(
     updated.updatedAt,
     updated.source?.filename ?? null,
     updated.source?.uploadedAt ?? null,
-    updated.id
+    updated.id,
   );
 
   return updated;

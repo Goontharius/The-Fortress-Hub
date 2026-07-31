@@ -3,6 +3,7 @@
 Thank you for your interest in contributing! We welcome all contributions.
 
 ## 📋 Table of Contents
+
 1. [Code of Conduct](#code-of-conduct)
 2. [Getting Started](#getting-started)
 3. [Development Workflow](#development-workflow)
@@ -18,6 +19,7 @@ We follow a Code of Conduct that ensures a welcoming environment for everyone. P
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 18+
 - npm 9+
 - Docker (optional)
@@ -50,3 +52,4 @@ npm run seed
 
 # 8. Start development servers
 npm run dev
+```
