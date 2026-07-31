@@ -1,0 +1,39 @@
+// ❌ CURRENT ISSUE: N+1 query problem
+const result = await pgPool.query('SELECT * FROM receipts WHERE user_id = $1', [userId]);
+for (const receipt of result.rows) {
+  // This runs a query for EACH receipt - SLOW!
+  const items = await pgPool.query('SELECT * FROM receipt_items WHERE receipt_id = $1', [receipt.id]);
+}
+
+// ✅ FIX: Use JOIN or JSON aggregation
+const optimizedQuery = `
+  SELECT 
+    r.*,
+    json_agg(ri.*) as items,
+    json_agg(DISTINCT t.*) as tags
+  FROM receipts r
+  LEFT JOIN receipt_items ri ON r.id = ri.receipt_id
+  LEFT JOIN receipt_tags rt ON r.id = rt.receipt_id
+  LEFT JOIN tags t ON rt.tag_id = t.id
+  WHERE r.user_id = $1
+  GROUP BY r.id
+  ORDER BY r.created_at DESC
+`;
+
+// Add connection pooling with better config
+const pgPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 20, // Max connections
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+  maxUses: 7500, // Close connections after this many uses
+  allowExitOnIdle: true,
+  // SSL for production
+  ssl: process.env.NODE_ENV === 'production' ? {
+    rejectUnauthorized: false
+  } : false
+});
+
+// Add query monitoring
+pgPool.on('connect', () => console.log('New DB connection'));
+pgPool.on('error', (err) => console.error('DB error:', err));
