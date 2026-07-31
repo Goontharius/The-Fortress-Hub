@@ -1,0 +1,232 @@
+// backend/security/auth.js
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
+
+class AuthenticationService {
+  constructor() {
+    this.saltRounds = 12;
+    this.tokenBlacklist = new Set();
+    this.failedAttempts = new Map();
+    this.sessionStore = new Map();
+  }
+
+  // 1. Password Policy Enforcement
+  validatePassword(password) {
+    const requirements = {
+      minLength: 12,
+      maxLength: 64,
+      requireUppercase: true,
+      requireLowercase: true,
+      requireNumbers: true,
+      requireSpecialChars: true,
+      preventCommonPasswords: true,
+      preventPersonalInfo: true
+    };
+
+    const errors = [];
+    if (password.length < requirements.minLength) {
+      errors.push(`Password must be at least ${requirements.minLength} characters`);
+    }
+    if (password.length > requirements.maxLength) {
+      errors.push(`Password must be less than ${requirements.maxLength} characters`);
+    }
+    if (requirements.requireUppercase && !/[A-Z]/.test(password)) {
+      errors.push('Password must contain at least one uppercase letter');
+    }
+    if (requirements.requireLowercase && !/[a-z]/.test(password)) {
+      errors.push('Password must contain at least one lowercase letter');
+    }
+    if (requirements.requireNumbers && !/[0-9]/.test(password)) {
+      errors.push('Password must contain at least one number');
+    }
+    if (requirements.requireSpecialChars && !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      errors.push('Password must contain at least one special character');
+    }
+    if (requirements.preventCommonPasswords) {
+      const commonPasswords = ['password123', 'admin123', 'qwerty123'];
+      if (commonPasswords.includes(password.toLowerCase())) {
+        errors.push('Password is too common');
+      }
+    }
+    // Check against breached passwords (haveibeenpwned API)
+    // Implement in production
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  // 2. Multi-Factor Authentication
+  async setup2FA(userId) {
+    const secret = speakeasy.generateSecret({
+      length: 20,
+      name: `Fortress Hub (${userId})`
+    });
+
+    // Store secret securely
+    await this.store2FASecret(userId, secret.base32);
+
+    // Generate QR code
+    const qrCode = await QRCode.toDataURL(secret.otpauth_url);
+
+    // Generate backup codes
+    const backupCodes = this.generateBackupCodes(10);
+
+    return {
+      secret: secret.base32,
+      qrCode,
+      backupCodes,
+      recoveryCodes: backupCodes.map(code => code.toString())
+    };
+  }
+
+  generateBackupCodes(count = 10) {
+    const codes = [];
+    for (let i = 0; i < count; i++) {
+      codes.push(Math.floor(100000 + Math.random() * 900000));
+    }
+    return codes;
+  }
+
+  verify2FA(secret, token) {
+    return speakeasy.totp.verify({
+      secret,
+      encoding: 'base32',
+      token,
+      window: 2 // Allow 2 steps time drift
+    });
+  }
+
+  // 3. Session Management
+  createSession(userId, userAgent, ip) {
+    const sessionId = crypto.randomBytes(32).toString('hex');
+    const session = {
+      id: sessionId,
+      userId,
+      userAgent,
+      ip,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+      revoked: false
+    };
+
+    this.sessionStore.set(sessionId, session);
+    return session;
+  }
+
+  validateSession(sessionId) {
+    const session = this.sessionStore.get(sessionId);
+    if (!session || session.revoked || session.expiresAt < Date.now()) {
+      return false;
+    }
+    return session;
+  }
+
+  revokeAllSessions(userId) {
+    for (const [sessionId, session] of this.sessionStore) {
+      if (session.userId === userId) {
+        session.revoked = true;
+        this.sessionStore.set(sessionId, session);
+      }
+    }
+  }
+
+  // 4. Rate Limiting per User
+  rateLimiter(userId, action) {
+    const key = `${userId}:${action}`;
+    const attempts = this.failedAttempts.get(key) || { count: 0, firstAttempt: Date.now() };
+
+    const windowMs = 15 * 60 * 1000; // 15 minutes
+    const maxAttempts = 5;
+
+    // Reset if outside window
+    if (Date.now() - attempts.firstAttempt > windowMs) {
+      attempts.count = 0;
+      attempts.firstAttempt = Date.now();
+    }
+
+    attempts.count++;
+    this.failedAttempts.set(key, attempts);
+
+    if (attempts.count > maxAttempts) {
+      const remainingTime = Math.ceil((windowMs - (Date.now() - attempts.firstAttempt)) / 1000);
+      return {
+        blocked: true,
+        remainingSeconds: remainingTime
+      };
+    }
+
+    return {
+      blocked: false,
+      attemptsRemaining: maxAttempts - attempts.count
+    };
+  }
+}
+
+// JWT with enhanced security
+class JWTService {
+  constructor() {
+    this.secret = process.env.JWT_SECRET;
+    this.refreshSecret = process.env.JWT_REFRESH_SECRET;
+    this.accessTokenExpiry = '15m';
+    this.refreshTokenExpiry = '7d';
+    this.algorithm = 'HS512';
+  }
+
+  generateTokens(user) {
+    const payload = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      permissions: user.permissions || []
+    };
+
+    const accessToken = jwt.sign(payload, this.secret, {
+      expiresIn: this.accessTokenExpiry,
+      algorithm: this.algorithm,
+      issuer: 'fortress-hub',
+      audience: 'fortress-hub-api'
+    });
+
+    const refreshToken = jwt.sign(
+      { id: user.id, type: 'refresh' },
+      this.refreshSecret,
+      {
+        expiresIn: this.refreshTokenExpiry,
+        algorithm: this.algorithm,
+        issuer: 'fortress-hub',
+        audience: 'fortress-hub-api'
+      }
+    );
+
+    // Store refresh token in database with fingerprint
+    this.storeRefreshToken(user.id, refreshToken);
+
+    return { accessToken, refreshToken, expiresIn: 900 }; // 15 minutes in seconds
+  }
+
+  refreshAccessToken(refreshToken) {
+    try {
+      const decoded = jwt.verify(refreshToken, this.refreshSecret, {
+        algorithms: [this.algorithm],
+        issuer: 'fortress-hub',
+        audience: 'fortress-hub-api'
+      });
+
+      // Check if token is valid and not revoked
+      if (!this.isRefreshTokenValid(decoded.id, refreshToken)) {
+        throw new Error('Invalid refresh token');
+      }
+
+      // Generate new access token
+      const user = this.getUser(decoded.id);
+      return this.generateTokens(user);
+    } catch (error) {
+      throw new Error('Invalid or expired refresh token');
+    }
+  }
+}
