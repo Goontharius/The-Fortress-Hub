@@ -1,0 +1,82 @@
+// tests/integration/receipt.test.js
+const request = require('supertest');
+const app = require('../server');
+const { setupTestDB, teardownTestDB } = require('./helpers');
+
+describe('Receipt API', () => {
+  let authToken;
+  let userId;
+  
+  beforeAll(async () => {
+    await setupTestDB();
+    // Create test user and get token
+    const user = await createTestUser();
+    userId = user.id;
+    authToken = user.token;
+  });
+  
+  afterAll(async () => {
+    await teardownTestDB();
+  });
+  
+  test('POST /api/upload - Should upload receipt', async () => {
+    const response = await request(app)
+      .post('/api/upload')
+      .set('Authorization', `Bearer ${authToken}`)
+      .attach('receipt', 'test/fixtures/receipt.jpg')
+      .field('userId', userId);
+    
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('jobId');
+    expect(response.body).toHaveProperty('imageUrl');
+  });
+  
+  test('GET /api/job/:jobId - Should get job status', async () => {
+    // Upload receipt first
+    const upload = await request(app)
+      .post('/api/upload')
+      .set('Authorization', `Bearer ${authToken}`)
+      .attach('receipt', 'test/fixtures/receipt.jpg')
+      .field('userId', userId);
+    
+    const jobId = upload.body.jobId;
+    
+    // Wait for processing
+    await waitForJobCompletion(jobId);
+    
+    const response = await request(app)
+      .get(`/api/job/${jobId}`)
+      .set('Authorization', `Bearer ${authToken}`);
+    
+    expect(response.status).toBe(200);
+    expect(response.body.state).toBe('completed');
+  });
+  
+  test('GET /api/analytics/:userId - Should return analytics', async () => {
+    const response = await request(app)
+      .get(`/api/analytics/${userId}`)
+      .set('Authorization', `Bearer ${authToken}`);
+    
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('summary');
+    expect(response.body).toHaveProperty('data');
+  });
+  
+  // Load testing
+  test('Should handle concurrent uploads', async () => {
+    const promises = [];
+    for (let i = 0; i < 10; i++) {
+      promises.push(
+        request(app)
+          .post('/api/upload')
+          .set('Authorization', `Bearer ${authToken}`)
+          .attach('receipt', 'test/fixtures/receipt.jpg')
+          .field('userId', userId)
+      );
+    }
+    
+    const responses = await Promise.all(promises);
+    const successCount = responses.filter(r => r.status === 200).length;
+    expect(successCount).toBe(10);
+  });
+});
