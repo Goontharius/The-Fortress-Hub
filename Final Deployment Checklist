@@ -1,0 +1,16 @@
+# Pre-deployment verification
+npm run test:security    # Security audit
+npm run test:performance # Load testing  
+npm run test:integration # API tests
+npm run lint             # Code quality
+npm run audit            # Dependency audit
+
+# Production hardening
+# 1. Enable HTTPS with Let's Encrypt
+# 2. Set up WAF (Cloudflare/AWS WAF)
+# 3. Configure rate limiting
+# 4. Enable 2FA for admin accounts
+# 5. Set up automated backups
+# 6. Configure monitoring alerts
+# 7. Create disaster recovery plan
+# 8. Perform penetration testing
