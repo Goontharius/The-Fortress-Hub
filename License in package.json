@@ -1,0 +1,20 @@
+{
+  "name": "the-fortress-hub",
+  "version": "1.0.0",
+  "description": "🏰 The Fortress Hub - Receipt Management Platform",
+  "license": "MIT",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/the-fortress-hub.git"
+  },
+  "author": {
+    "name": "The Fortress Hub Team",
+    "email": "team@fortresshub.com",
+    "url": "https://fortresshub.com"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/the-fortress-hub/issues"
+  },
+  "homepage": "https://fortresshub.com"
+}
