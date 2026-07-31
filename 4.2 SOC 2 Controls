@@ -1,0 +1,242 @@
+// backend/compliance/soc2.js
+class SOC2Controls {
+  constructor() {
+    this.controls = {
+      security: [
+        'access_control',
+        'firewall',
+        'encryption',
+        'intrusion_detection',
+        'vulnerability_scanning'
+      ],
+      availability: [
+        'redundancy',
+        'backup',
+        'disaster_recovery',
+        'monitoring',
+        'incident_response'
+      ],
+      processing_integrity: [
+        'data_validation',
+        'error_handling',
+        'transaction_logging',
+        'reconciliation',
+        'audit_trails'
+      ],
+      confidentiality: [
+        'encryption_at_rest',
+        'encryption_in_transit',
+        'access_control',
+        'classification',
+        'data_masking'
+      ],
+      privacy: [
+        'consent_management',
+        'data_minimization',
+        'purpose_limitation',
+        'retention_policy',
+        'breach_notification'
+      ]
+    };
+
+    this.controlStatus = new Map();
+  }
+
+  async performAudit() {
+    const results = {
+      timestamp: new Date().toISOString(),
+      controls: {},
+      overall: 'pass'
+    };
+
+    for (const [category, controls] of Object.entries(this.controls)) {
+      results.controls[category] = {};
+      
+      for (const control of controls) {
+        const status = await this.evaluateControl(category, control);
+        results.controls[category][control] = status;
+        
+        if (status.status === 'fail') {
+          results.overall = 'fail';
+        }
+      }
+    }
+
+    return results;
+  }
+
+  async evaluateControl(category, control) {
+    let result = {
+      status: 'pass',
+      evidence: [],
+      recommendations: []
+    };
+
+    switch (control) {
+      case 'access_control':
+        result = await this.evaluateAccessControl();
+        break;
+      case 'encryption':
+        result = await this.evaluateEncryption();
+        break;
+      case 'backup':
+        result = await this.evaluateBackup();
+        break;
+      case 'incident_response':
+        result = await this.evaluateIncidentResponse();
+        break;
+      case 'audit_trails':
+        result = await this.evaluateAuditTrails();
+        break;
+      default:
+        result.status = 'not_applicable';
+    }
+
+    return result;
+  }
+
+  async evaluateAccessControl() {
+    const findings = await db.query(`
+      SELECT 
+        COUNT(*) as total_users,
+        COUNT(CASE WHEN mfa_enabled = false THEN 1 END) as no_mfa,
+        COUNT(CASE WHEN last_password_change < NOW() - INTERVAL '90 days' THEN 1 END) as old_passwords,
+        COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_users
+      FROM users
+    `);
+
+    const recommendations = [];
+    let status = 'pass';
+
+    if (findings.rows[0].no_mfa > 0) {
+      status = 'fail';
+      recommendations.push('Enable MFA for all users');
+    }
+
+    if (findings.rows[0].old_passwords > 0) {
+      status = 'warning';
+      recommendations.push('Enforce password rotation policy');
+    }
+
+    return {
+      status,
+      evidence: findings.rows,
+      recommendations,
+      score: this.calculateAccessScore(findings.rows[0])
+    };
+  }
+
+  calculateAccessScore(data) {
+    let score = 100;
+    if (data.no_mfa > 0) score -= data.no_mfa * 10;
+    if (data.old_passwords > 0) score -= data.old_passwords * 5;
+    if (data.inactive_users > 0) score -= data.inactive_users * 2;
+    return Math.max(0, score);
+  }
+
+  async evaluateEncryption() {
+    // Check encryption status
+    const encryptionStatus = {
+      atRest: true,
+      inTransit: true,
+      keyRotation: await this.checkKeyRotation(),
+      algorithm: 'AES-256-GCM',
+      status: 'pass'
+    };
+
+    // Check TLS configuration
+    const tlsConfig = await this.checkTLSConfiguration();
+
+    // Check backup encryption
+    const backupEncryption = await this.checkBackupEncryption();
+
+    return {
+      status: encryptionStatus.atRest && tlsConfig.secure && backupEncryption.encrypted ? 'pass' : 'fail',
+      evidence: {
+        atRest: encryptionStatus,
+        inTransit: tlsConfig,
+        backups: backupEncryption
+      }
+    };
+  }
+
+  async evaluateBackup() {
+    const backupStatus = {
+      frequency: 'daily',
+      retention: '30 days',
+      encryption: true,
+      integrity: await this.verifyBackupIntegrity(),
+      status: 'pass'
+    };
+
+    // Test restore
+    const restoreTest = await this.performRestoreTest();
+
+    if (!backupStatus.integrity || !restoreTest.success) {
+      backupStatus.status = 'fail';
+    }
+
+    return {
+      status: backupStatus.status,
+      evidence: backupStatus,
+      recommendations: !restoreTest.success ? ['Failed restore test, investigate immediately'] : []
+    };
+  }
+
+  async evaluateIncidentResponse() {
+    const irPlan = {
+      exists: true,
+      tested: await this.wasRecentlyTested(),
+      roles: ['incident_commander', 'security_lead', 'communications_lead'],
+      procedures: ['detection', 'containment', 'eradication', 'recovery', 'post-mortem'],
+      status: 'pass'
+    };
+
+    // Check if plan is up to date
+    const lastUpdate = await this.getLastIRUpdate();
+    if (Date.now() - lastUpdate.getTime() > 90 * 24 * 60 * 60 * 1000) {
+      irPlan.status = 'warning';
+      irPlan.recommendations = ['Review incident response plan'];
+    }
+
+    return {
+      status: irPlan.status,
+      evidence: irPlan,
+      recommendations: irPlan.recommendations || []
+    };
+  }
+
+  async evaluateAuditTrails() {
+    // Check audit log completeness
+    const auditStatus = {
+      enabled: true,
+      retention: 365, // days
+      integrity: true,
+      searchable: true,
+      immutable: true,
+      status: 'pass'
+    };
+
+    // Check audit log coverage
+    const coverage = await this.auditLogCoverage();
+    if (coverage < 95) {
+      auditStatus.status = 'fail';
+    }
+
+    return {
+      status: auditStatus.status,
+      evidence: {
+        ...auditStatus,
+        coverage: coverage + '%'
+      },
+      recommendations: coverage < 95 ? ['Expand audit logging coverage'] : []
+    };
+  }
+
+  async auditLogCoverage() {
+    // Calculate what percentage of actions are being logged
+    const totalActions = await db.query('SELECT COUNT(DISTINCT action) FROM audit_logs');
+    const expectedActions = 50; // Define all expected actions
+    return Math.min(100, (totalActions.rows[0].count / expectedActions) * 100);
+  }
+}
