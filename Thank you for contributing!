@@ -1,0 +1,56 @@
+
+---
+
+### 10. **Complete GitHub Action Workflows**
+
+```yaml
+# .github/workflows/release.yml
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build all platforms
+        run: |
+          npm run build
+          npm run build:desktop
+      
+      - name: Create release artifacts
+        run: |
+          mkdir artifacts
+          cp -r src/desktop/dist/* artifacts/
+          cp -r src/backend/dist artifacts/backend
+          cp -r src/frontend/dist artifacts/frontend
+      
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          sha256sum * > checksums.txt
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
