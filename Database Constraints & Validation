@@ -1,0 +1,54 @@
+-- ❌ CURRENT ISSUE: Missing constraints
+CREATE TABLE receipts (
+    id SERIAL PRIMARY KEY,
+    user_id UUID, -- Should be NOT NULL
+    total DECIMAL(15,2) -- Should validate positive
+);
+
+-- ✅ FIX: Add constraints
+ALTER TABLE receipts
+    ALTER COLUMN user_id SET NOT NULL,
+    ALTER COLUMN s3_key SET NOT NULL,
+    ADD CONSTRAINT chk_total_positive CHECK (total >= 0),
+    ADD CONSTRAINT chk_tax_positive CHECK (tax >= 0),
+    ADD CONSTRAINT chk_date_valid CHECK (date <= CURRENT_DATE);
+
+-- Add indexes for common queries
+CREATE INDEX idx_receipts_user_date_status ON receipts(user_id, date DESC, status);
+CREATE INDEX idx_receipts_vendor_trgm ON receipts USING gin(vendor gin_trgm_ops);
+CREATE INDEX idx_receipts_category_total ON receipts(category, total DESC);
+
+-- Add table for schema migrations
+CREATE TABLE schema_migrations (
+    version VARCHAR(50) PRIMARY KEY,
+    applied_at TIMESTAMP DEFAULT NOW(),
+    checksum VARCHAR(64)
+);
+
+-- Data validation triggers
+CREATE OR REPLACE FUNCTION validate_receipt_data()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check total matches items sum
+    IF NEW.items IS NOT NULL AND NEW.items != '[]' THEN
+        DECLARE
+            item_sum DECIMAL(15,2);
+        BEGIN
+            SELECT COALESCE(SUM((item->>'price')::DECIMAL * (item->>'quantity')::INTEGER), 0)
+            INTO item_sum
+            FROM jsonb_array_elements(NEW.items) AS item;
+            
+            IF item_sum != NEW.total AND NEW.total IS NOT NULL THEN
+                -- Log warning but don't block
+                RAISE WARNING 'Total mismatch: items sum % vs total %', item_sum, NEW.total;
+            END IF;
+        END;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER validate_receipt_trigger
+    BEFORE INSERT OR UPDATE ON receipts
+    FOR EACH ROW EXECUTE FUNCTION validate_receipt_data();
