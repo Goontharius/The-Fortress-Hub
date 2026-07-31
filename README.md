@@ -71,3 +71,17 @@ docker-compose up -d
 
 # Access the application
 open http://localhost:3000
+<!-- MIT License Badge -->
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+<!-- Apache 2.0 Badge -->
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
+<!-- GPL 3.0 Badge -->
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
+<!-- Custom Badge -->
+[![License: Commercial](https://img.shields.io/badge/License-Commercial-red.svg)](https://fortresshub.com/license)
+
+<!-- Multi-license Badge -->
+[![License: MIT/Apache](https://img.shields.io/badge/License-MIT%20%26%20Apache%202.0-green.svg)](LICENSE)
