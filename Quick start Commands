@@ -1,0 +1,8 @@
+# One command to add MIT license
+curl -L https://raw.githubusercontent.com/your-username/the-fortress-hub/main/docs/licenses/MIT.md -o LICENSE && git add LICENSE && git commit -m "Add MIT license" && git push origin main
+
+# One command to add Apache 2.0 license
+curl -L https://www.apache.org/licenses/LICENSE-2.0.txt -o LICENSE && git add LICENSE && git commit -m "Add Apache 2.0 license" && git push origin main
+
+# One command to add GPL 3.0 license
+curl -L https://www.gnu.org/licenses/gpl-3.0.txt -o LICENSE && git add LICENSE && git commit -m "Add GPL 3.0 license" && git push origin main
