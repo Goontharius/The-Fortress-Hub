@@ -1,0 +1,111 @@
+// backend/cron/archiveJobs.js
+const cron = require('node-cron');
+const HistoricalArchiveService = require('../services/historicalArchive');
+
+const archiveService = new HistoricalArchiveService();
+
+// Monthly archive creation (runs on 1st of each month)
+cron.schedule('0 0 1 * *', async () => {
+  console.log('🏛️ Running monthly archive job...');
+  
+  try {
+    // Get all users
+    const users = await pgPool.query('SELECT id FROM users WHERE is_active = true');
+    
+    for (const user of users.rows) {
+      const currentYear = new Date().getFullYear();
+      const currentMonth = new Date().getMonth() + 1;
+      
+      // Check if we have data for this month
+      const hasData = await pgPool.query(
+        'SELECT COUNT(*) FROM receipts WHERE user_id = $1 AND EXTRACT(YEAR FROM date) = $2 AND EXTRACT(MONTH FROM date) = $3',
+        [user.id, currentYear, currentMonth]
+      );
+      
+      if (hasData.rows[0].count > 0) {
+        // Create monthly summary
+        await archiveService.createMonthlySummary(user.id, currentYear, currentMonth);
+      }
+    }
+    
+    console.log('✅ Monthly archive job completed');
+  } catch (error) {
+    console.error('❌ Monthly archive job failed:', error);
+  }
+});
+
+// Yearly archive creation (runs on Jan 1st)
+cron.schedule('0 0 1 1 *', async () => {
+  console.log('🏛️ Running yearly archive job...');
+  
+  try {
+    const previousYear = new Date().getFullYear() - 1;
+    const users = await pgPool.query('SELECT id FROM users WHERE is_active = true');
+    
+    for (const user of users.rows) {
+      // Check if we have data for this year
+      const hasData = await pgPool.query(
+        'SELECT COUNT(*) FROM receipts WHERE user_id = $1 AND EXTRACT(YEAR FROM date) = $2',
+        [user.id, previousYear]
+      );
+      
+      if (hasData.rows[0].count > 0) {
+        // Create yearly archive
+        await archiveService.archiveYear(user.id, previousYear);
+        
+        // Move old data to warm/cold storage
+        await archiveService.archiveOldData(user.id, previousYear);
+      }
+    }
+    
+    console.log('✅ Yearly archive job completed');
+  } catch (error) {
+    console.error('❌ Yearly archive job failed:', error);
+  }
+});
+
+// Data retention enforcement (runs daily)
+cron.schedule('0 2 * * *', async () => {
+  console.log('🗑️ Running data retention job...');
+  
+  try {
+    // Get retention policies
+    const policies = await pgPool.query(`
+      SELECT * FROM retention_policies WHERE is_active = true
+    `);
+    
+    for (const policy of policies.rows) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - policy.retention_days);
+      
+      // Archive or delete old data based on policy
+      if (policy.action === 'archive') {
+        await archiveService.archiveOldDataByPolicy(policy, cutoffDate);
+      } else if (policy.action === 'delete') {
+        await archiveService.deleteOldDataByPolicy(policy, cutoffDate);
+      }
+    }
+    
+    console.log('✅ Data retention job completed');
+  } catch (error) {
+    console.error('❌ Data retention job failed:', error);
+  }
+});
+
+// Historical data integrity check (runs weekly)
+cron.schedule('0 3 * * 0', async () => {
+  console.log('🔍 Running data integrity check...');
+  
+  try {
+    const results = await archiveService.verifyAllArchives();
+    
+    if (results.corrupted.length > 0) {
+      console.warn('⚠️ Found corrupted archives:', results.corrupted);
+      await archiveService.notifyAdmin('archive_corruption', results);
+    }
+    
+    console.log('✅ Data integrity check completed');
+  } catch (error) {
+    console.error('❌ Data integrity check failed:', error);
+  }
+});
