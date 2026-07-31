@@ -1,20 +1,70 @@
+<div align="center">
+
 # 🏰 The Fortress Hub
+
+### *Your All-in-One Receipt Management & Analytics Platform*
 
 [![CI](https://github.com/your-username/the-fortress-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/the-fortress-hub/actions/workflows/ci.yml)
 [![CD](https://github.com/your-username/the-fortress-hub/actions/workflows/cd.yml/badge.svg)](https://github.com/your-username/the-fortress-hub/actions/workflows/cd.yml)
 [![Security](https://github.com/your-username/the-fortress-hub/actions/workflows/security-scan.yml/badge.svg)](https://github.com/your-username/the-fortress-hub/actions/workflows/security-scan.yml)
 [![CodeQL](https://github.com/your-username/the-fortress-hub/actions/workflows/codeql.yml/badge.svg)](https://github.com/your-username/the-fortress-hub/actions/workflows/codeql.yml)
 [![Dependency Review](https://github.com/your-username/the-fortress-hub/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/your-username/the-fortress-hub/actions/workflows/dependency-review.yml)
-[![Release](https://github.com/your-username/the-fortress-hub/actions/workflows/release.yml/badge.svg)](https://github.com/your-username/the-fortress-hub/actions/workflows/release.yml)
 
-[![License](https://img.shields.io/github/license/your-username/the-fortress-hub)](https://github.com/your-username/the-fortress-hub/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Version](https://img.shields.io/github/v/release/your-username/the-fortress-hub)](https://github.com/your-username/the-fortress-hub/releases)
 [![Stars](https://img.shields.io/github/stars/your-username/the-fortress-hub)](https://github.com/your-username/the-fortress-hub/stargazers)
 [![Forks](https://img.shields.io/github/forks/your-username/the-fortress-hub)](https://github.com/your-username/the-fortress-hub/network/members)
 [![Issues](https://img.shields.io/github/issues/your-username/the-fortress-hub)](https://github.com/your-username/the-fortress-hub/issues)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-> **Your all-in-one receipt management and analytics platform** - Transform your financial data into actionable insights with AI-powered automation.
+[![Made with Node.js](https://img.shields.io/badge/Made%20with-Node.js-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![Made with React](https://img.shields.io/badge/Made%20with-React-61DAFB?logo=react&logoColor=white)](https://reactjs.org)
+[![Made with Docker](https://img.shields.io/badge/Made%20with-Docker-2496ED?logo=docker&logoColor=white)](https://docker.com)
+[![Made with PostgreSQL](https://img.shields.io/badge/Made%20with-PostgreSQL-336791?logo=postgresql&logoColor=white)](https://postgresql.org)
+
+</div>
+
+---
+
+## 📋 Table of Contents
+
+- [Overview](#-overview)
+- [Features](#-features)
+- [Quick Start](#-quick-start)
+- [Architecture](#-architecture)
+- [Technology Stack](#-technology-stack)
+- [Installation](#-installation)
+- [Configuration](#-configuration)
+- [Usage](#-usage)
+- [API Documentation](#-api-documentation)
+- [Deployment](#-deployment)
+- [Contributing](#-contributing)
+- [Security](#-security)
+- [License & Legal](#-license--legal)
+  - [License Options](#license-options)
+  - [Third-Party Licenses](#third-party-licenses)
+  - [Disclaimers](#disclaimers)
+  - [Trademark Notice](#trademark-notice)
+  - [Copyright](#copyright)
+- [Support](#-support)
+- [Acknowledgments](#-acknowledgments)
+
+---
+
+## 🎯 Overview
+
+**The Fortress Hub** is a comprehensive, AI-powered receipt management and analytics platform designed for handymen, contractors, small business owners, and anyone who needs to track expenses efficiently.
+
+Transform your financial data into actionable insights with:
+- 📸 **Smart Receipt Capture** - Snap, upload, or forward receipts
+- 🧠 **AI-Powered OCR** - Automatic data extraction with Google Gemini
+- 📊 **Real-Time Analytics** - Visualize spending patterns instantly
+- 📜 **Unlimited History** - Store years of data with tiered storage
+- 🔒 **Enterprise Security** - Zero-trust architecture with encryption
+- 🤝 **Team Collaboration** - Share and manage expenses together
+
+---
 
 ## ✨ Features
 
@@ -54,6 +104,8 @@
 - **Shared Workspaces**: Collaborate on projects
 - **Comments & Annotations**: Team communication
 
+---
+
 ## 🚀 Quick Start
 
 ### Option 1: Docker (Recommended)
@@ -71,17 +123,3 @@ docker-compose up -d
 
 # Access the application
 open http://localhost:3000
-<!-- MIT License Badge -->
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-<!-- Apache 2.0 Badge -->
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-
-<!-- GPL 3.0 Badge -->
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-
-<!-- Custom Badge -->
-[![License: Commercial](https://img.shields.io/badge/License-Commercial-red.svg)](https://fortresshub.com/license)
-
-<!-- Multi-license Badge -->
-[![License: MIT/Apache](https://img.shields.io/badge/License-MIT%20%26%20Apache%202.0-green.svg)](LICENSE)
