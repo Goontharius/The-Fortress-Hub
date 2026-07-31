@@ -1,0 +1,370 @@
+the-fortress-hub/
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml                    # Continuous Integration
+│   │   ├── cd.yml                    # Continuous Deployment
+│   │   ├── security-scan.yml         # Security scanning
+│   │   ├── codeql.yml               # CodeQL analysis
+│   │   ├── dependency-review.yml    # Dependency scanning
+│   │   └── release.yml              # Automated releases
+│   ├── ISSUE_TEMPLATE/
+│   │   ├── bug_report.md
+│   │   ├── feature_request.md
+│   │   └── security_vulnerability.md
+│   ├── PULL_REQUEST_TEMPLATE.md
+│   ├── CODEOWNERS
+│   └── dependabot.yml
+│
+├── src/
+│   ├── backend/
+│   │   ├── server.js
+│   │   ├── app.js
+│   │   ├── package.json
+│   │   ├── .env.example
+│   │   ├── Dockerfile
+│   │   ├── ecosystem.config.js
+│   │   ├── routes/
+│   │   │   ├── index.js
+│   │   │   ├── auth.js
+│   │   │   ├── upload.js
+│   │   │   ├── analytics.js
+│   │   │   ├── historical.js
+│   │   │   ├── receipts.js
+│   │   │   ├── tax.js
+│   │   │   └── webhooks.js
+│   │   ├── controllers/
+│   │   │   ├── authController.js
+│   │   │   ├── receiptController.js
+│   │   │   ├── analyticsController.js
+│   │   │   ├── historicalController.js
+│   │   │   └── taxController.js
+│   │   ├── models/
+│   │   │   ├── User.js
+│   │   │   ├── Receipt.js
+│   │   │   ├── Analytics.js
+│   │   │   ├── Archive.js
+│   │   │   ├── Budget.js
+│   │   │   ├── Tag.js
+│   │   │   └── AuditLog.js
+│   │   ├── services/
+│   │   │   ├── authService.js
+│   │   │   ├── receiptService.js
+│   │   │   ├── analyticsService.js
+│   │   │   ├── historicalService.js
+│   │   │   ├── archiveService.js
+│   │   │   ├── insightsService.js
+│   │   │   ├── searchService.js
+│   │   │   ├── backupService.js
+│   │   │   └── notificationService.js
+│   │   ├── middleware/
+│   │   │   ├── auth.js
+│   │   │   ├── validate.js
+│   │   │   ├── rateLimiter.js
+│   │   │   ├── security.js
+│   │   │   ├── audit.js
+│   │   │   ├── upload.js
+│   │   │   └── errorHandler.js
+│   │   ├── security/
+│   │   │   ├── encryption.js
+│   │   │   ├── waf.js
+│   │   │   ├── zeroTrust.js
+│   │   │   ├── pii.js
+│   │   │   └── compliance.js
+│   │   ├── workers/
+│   │   │   ├── receiptProcessor.js
+│   │   │   ├── reportGenerator.js
+│   │   │   ├── archiveWorker.js
+│   │   │   ├── emailWorker.js
+│   │   │   └── backupWorker.js
+│   │   ├── cron/
+│   │   │   ├── archiveJobs.js
+│   │   │   ├── backupJobs.js
+│   │   │   ├── reportJobs.js
+│   │   │   ├── cleanupJobs.js
+│   │   │   └── analyticsJobs.js
+│   │   ├── utils/
+│   │   │   ├── logger.js
+│   │   │   ├── metrics.js
+│   │   │   ├── validators.js
+│   │   │   ├── helpers.js
+│   │   │   ├── constants.js
+│   │   │   └── redis.js
+│   │   ├── config/
+│   │   │   ├── index.js
+│   │   │   ├── database.js
+│   │   │   ├── redis.js
+│   │   │   ├── aws.js
+│   │   │   └── gemini.js
+│   │   ├── migrations/
+│   │   │   ├── 20240101000000_init.sql
+│   │   │   ├── 20240115000000_add_archives.sql
+│   │   │   ├── 20240201000000_add_historical.sql
+│   │   │   └── seed.sql
+│   │   └── tests/
+│   │       ├── unit/
+│   │       │   ├── auth.test.js
+│   │       │   ├── receipt.test.js
+│   │       │   └── analytics.test.js
+│   │       ├── integration/
+│   │       │   ├── api.test.js
+│   │       │   └── database.test.js
+│   │       └── e2e/
+│   │           └── workflow.test.js
+│   │
+│   ├── frontend/
+│   │   ├── public/
+│   │   │   ├── index.html
+│   │   │   ├── favicon.ico
+│   │   │   └── manifest.json
+│   │   ├── src/
+│   │   │   ├── index.jsx
+│   │   │   ├── App.jsx
+│   │   │   ├── App.css
+│   │   │   ├── components/
+│   │   │   │   ├── Dashboard/
+│   │   │   │   │   ├── Dashboard.jsx
+│   │   │   │   │   ├── Dashboard.css
+│   │   │   │   │   ├── SpendingChart.jsx
+│   │   │   │   │   ├── CategoryBreakdown.jsx
+│   │   │   │   │   └── QuickStats.jsx
+│   │   │   │   ├── Historical/
+│   │   │   │   │   ├── HistoricalDashboard.jsx
+│   │   │   │   │   ├── HistoricalViewer.jsx
+│   │   │   │   │   ├── DataStorytelling.jsx
+│   │   │   │   │   ├── DataComparison.jsx
+│   │   │   │   │   └── TimelineExplorer.jsx
+│   │   │   │   ├── Analytics/
+│   │   │   │   │   ├── AnalyticsDashboard.jsx
+│   │   │   │   │   ├── InsightsEngine.jsx
+│   │   │   │   │   ├── PredictiveAnalytics.jsx
+│   │   │   │   │   └── AnomalyDetector.jsx
+│   │   │   │   ├── Receipts/
+│   │   │   │   │   ├── ReceiptScanner.jsx
+│   │   │   │   │   ├── ReceiptList.jsx
+│   │   │   │   │   ├── ReceiptDetail.jsx
+│   │   │   │   │   └── ReceiptUpload.jsx
+│   │   │   │   ├── Reports/
+│   │   │   │   │   ├── ReportGenerator.jsx
+│   │   │   │   │   ├── TaxReport.jsx
+│   │   │   │   │   └── CustomReport.jsx
+│   │   │   │   ├── Settings/
+│   │   │   │   │   ├── Settings.jsx
+│   │   │   │   │   ├── Profile.jsx
+│   │   │   │   │   ├── Security.jsx
+│   │   │   │   │   ├── Integrations.jsx
+│   │   │   │   │   └── Backup.jsx
+│   │   │   │   └── Common/
+│   │   │   │       ├── Header.jsx
+│   │   │   │       ├── Sidebar.jsx
+│   │   │   │       ├── Loading.jsx
+│   │   │   │       ├── ErrorBoundary.jsx
+│   │   │   │       └── Notification.jsx
+│   │   │   ├── hooks/
+│   │   │   │   ├── useAuth.js
+│   │   │   │   ├── useReceipts.js
+│   │   │   │   ├── useAnalytics.js
+│   │   │   │   ├── useHistorical.js
+│   │   │   │   └── useSearch.js
+│   │   │   ├── context/
+│   │   │   │   ├── AuthContext.jsx
+│   │   │   │   ├── ReceiptContext.jsx
+│   │   │   │   └── ThemeContext.jsx
+│   │   │   ├── utils/
+│   │   │   │   ├── api.js
+│   │   │   │   ├── formatters.js
+│   │   │   │   ├── validators.js
+│   │   │   │   ├── constants.js
+│   │   │   │   └── helpers.js
+│   │   │   ├── styles/
+│   │   │   │   ├── index.css
+│   │   │   │   ├── variables.css
+│   │   │   │   ├── dashboard.css
+│   │   │   │   └── themes/
+│   │   │   │       ├── light.css
+│   │   │   │       ├── dark.css
+│   │   │   │       └── fortress.css
+│   │   │   └── assets/
+│   │   │       ├── images/
+│   │   │       ├── fonts/
+│   │   │       └── icons/
+│   │   ├── package.json
+│   │   ├── .env.example
+│   │   ├── Dockerfile
+│   │   ├── nginx.conf
+│   │   └── vite.config.js
+│   │
+│   ├── mobile/
+│   │   ├── ios/
+│   │   │   ├── FortressHub/
+│   │   │   ├── FortressHub.xcodeproj/
+│   │   │   └── Podfile
+│   │   ├── android/
+│   │   │   ├── app/
+│   │   │   └── gradle/
+│   │   ├── src/
+│   │   │   ├── App.js
+│   │   │   ├── navigation/
+│   │   │   │   ├── AppNavigator.js
+│   │   │   │   └── AuthNavigator.js
+│   │   │   ├── screens/
+│   │   │   │   ├── HomeScreen.js
+│   │   │   │   ├── CameraScreen.js
+│   │   │   │   ├── ReceiptListScreen.js
+│   │   │   │   ├── ReceiptDetailScreen.js
+│   │   │   │   ├── AnalyticsScreen.js
+│   │   │   │   ├── HistoricalScreen.js
+│   │   │   │   └── SettingsScreen.js
+│   │   │   ├── components/
+│   │   │   │   ├── ReceiptCard.js
+│   │   │   │   ├── ChartView.js
+│   │   │   │   ├── OfflineQueue.js
+│   │   │   │   └── LoadingIndicator.js
+│   │   │   ├── hooks/
+│   │   │   │   ├── useCamera.js
+│   │   │   │   ├── useOffline.js
+│   │   │   │   └── useSync.js
+│   │   │   └── utils/
+│   │   │       ├── storage.js
+│   │   │       └── sync.js
+│   │   ├── package.json
+│   │   ├── .env.example
+│   │   └── app.json
+│   │
+│   └── desktop/
+│       ├── main.js
+│       ├── preload.js
+│       ├── package.json
+│       ├── electron-builder.yml
+│       ├── assets/
+│       │   ├── icon.icns
+│       │   ├── icon.ico
+│       │   └── icon.png
+│       └── entitlements/
+│           └── entitlements.mac.plist
+│
+├── docs/
+│   ├── README.md
+│   ├── INSTALLATION.md
+│   ├── DEPLOYMENT.md
+│   ├── API.md
+│   ├── ARCHITECTURE.md
+│   ├── CONTRIBUTING.md
+│   ├── CODE_OF_CONDUCT.md
+│   ├── SECURITY.md
+│   ├── CHANGELOG.md
+│   ├── ROADMAP.md
+│   ├── api/
+│   │   ├── authentication.md
+│   │   ├── receipts.md
+│   │   ├── analytics.md
+│   │   └── historical.md
+│   ├── guides/
+│   │   ├── getting-started.md
+│   │   ├── user-guide.md
+│   │   ├── admin-guide.md
+│   │   └── developer-guide.md
+│   └── diagrams/
+│       ├── architecture.png
+│       ├── data-flow.png
+│       ├── security-architecture.png
+│       └── deployment.png
+│
+├── scripts/
+│   ├── setup/
+│   │   ├── setup-mac.sh
+│   │   ├── setup-linux.sh
+│   │   ├── setup-windows.ps1
+│   │   └── setup-docker.sh
+│   ├── deploy/
+│   │   ├── deploy.sh
+│   │   ├── deploy-aws.sh
+│   │   ├── deploy-azure.sh
+│   │   └── deploy-gcp.sh
+│   ├── build/
+│   │   ├── build-all.sh
+│   │   ├── build-backend.sh
+│   │   ├── build-frontend.sh
+│   │   └── build-mobile.sh
+│   ├── maintenance/
+│   │   ├── backup.sh
+│   │   ├── restore.sh
+│   │   ├── migrate.sh
+│   │   ├── cleanup.sh
+│   │   └── health-check.sh
+│   └── utility/
+│       ├── generate-keys.sh
+│       ├── test-email.sh
+│       ├── test-ocr.sh
+│       └── performance-test.sh
+│
+├── config/
+│   ├── docker/
+│   │   ├── docker-compose.yml
+│   │   ├── docker-compose.prod.yml
+│   │   └── docker-compose.test.yml
+│   ├── nginx/
+│   │   ├── nginx.conf
+│   │   └── ssl/
+│   │       ├── cert.pem
+│   │       └── key.pem
+│   ├── pm2/
+│   │   └── ecosystem.config.js
+│   ├── kubernetes/
+│   │   ├── deployment.yaml
+│   │   ├── service.yaml
+│   │   ├── ingress.yaml
+│   │   ├── configmap.yaml
+│   │   └── secrets.yaml
+│   └── monitoring/
+│       ├── prometheus.yml
+│       ├── grafana-dashboard.json
+│       └── alert-rules.yml
+│
+├── tests/
+│   ├── unit/
+│   │   ├── backend/
+│   │   └── frontend/
+│   ├── integration/
+│   │   ├── api/
+│   │   └── database/
+│   ├── e2e/
+│   │   ├── cypress/
+│   │   └── playwright/
+│   ├── performance/
+│   │   ├── load-test.js
+│   │   └── stress-test.js
+│   └── security/
+│       ├── penetration-test.js
+│       └── vulnerability-scan.js
+│
+├── tools/
+│   ├── scripts/
+│   │   ├── generate-docs.js
+│   │   ├── generate-schemas.js
+│   │   └── validate-config.js
+│   └── templates/
+│       ├── component.template
+│       ├── hook.template
+│       └── service.template
+│
+├── .env.example
+├── .gitignore
+├── .gitattributes
+├── .editorconfig
+├── .eslintrc.js
+├── .prettierrc
+├── .husky/
+│   └── pre-commit
+│
+├── package.json
+├── package-lock.json
+├── lerna.json
+├── turbo.json
+├── README.md
+├── LICENSE
+├── CONTRIBUTING.md
+├── CODE_OF_CONDUCT.md
+├── SECURITY.md
+├── CHANGELOG.md
+├── ROADMAP.md
+└── SUPPORT.md
