@@ -1,0 +1,31 @@
+// utils/currency.js
+const currencies = {
+  USD: { symbol: '$', rate: 1.0, locale: 'en-US' },
+  EUR: { symbol: '€', rate: 0.92, locale: 'de-DE' },
+  GBP: { symbol: '£', rate: 0.79, locale: 'en-GB' },
+  JPY: { symbol: '¥', rate: 149.5, locale: 'ja-JP' },
+  CAD: { symbol: 'CA$', rate: 1.36, locale: 'en-CA' },
+  AUD: { symbol: 'AU$', rate: 1.53, locale: 'en-AU' },
+  // Add 150+ currencies
+};
+
+// Auto-detect from receipt
+async function detectCurrency(text) {
+  const patterns = {
+    USD: /(\$|USD|US\s?Dollar)/i,
+    EUR: /(€|EUR|Euro)/i,
+    GBP: /(£|GBP|Pound)/i,
+    // ... more patterns
+  };
+  
+  for (const [currency, pattern] of Object.entries(patterns)) {
+    if (pattern.test(text)) return currency;
+  }
+  return 'USD'; // default
+}
+
+// Real-time conversion
+async function convertCurrency(amount, from, to, date = new Date()) {
+  const rates = await getExchangeRates(date);
+  return amount * (rates[to] / rates[from]);
+}
