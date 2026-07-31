@@ -1,0 +1,28 @@
+Data Storage Tiering:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔥 HOT STORAGE (90 days)
+  ├── PostgreSQL (SSD)
+  ├── Full-text search
+  ├── Real-time access
+  └── Cost: $0.25/GB/month
+
+🟡 WARM STORAGE (2 years)
+  ├── TimescaleDB (compressed)
+  ├── Fast search
+  ├── Seconds access
+  └── Cost: $0.10/GB/month
+
+❄️ COLD STORAGE (7+ years)
+  ├── AWS S3 Glacier
+  ├── Metadata indexing
+  ├── Minutes to hours access
+  └── Cost: $0.005/GB/month
+
+📦 ARCHIVE STORAGE (Indefinite)
+  ├── S3 Glacier Deep Archive
+  ├── Minimal metadata
+  ├── Hours to days access
+  └── Cost: $0.00099/GB/month
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
