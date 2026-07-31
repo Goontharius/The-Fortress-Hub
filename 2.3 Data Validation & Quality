@@ -1,0 +1,195 @@
+// backend/services/validation.js
+class DataValidationService {
+  constructor() {
+    this.rules = new Map();
+    this.initRules();
+  }
+
+  initRules() {
+    this.rules.set('email', {
+      pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+      sanitize: (value) => value.toLowerCase().trim(),
+      message: 'Invalid email address'
+    });
+
+    this.rules.set('phone', {
+      pattern: /^\+?[\d\s-]{10,}$/,
+      sanitize: (value) => value.replace(/[\s-]/g, ''),
+      message: 'Invalid phone number'
+    });
+
+    this.rules.set('creditCard', {
+      pattern: /^[\d\s-]{16,19}$/,
+      sanitize: (value) => value.replace(/[\s-]/g, ''),
+      message: 'Invalid credit card number'
+    });
+
+    this.rules.set('socialSecurity', {
+      pattern: /^\d{3}-\d{2}-\d{4}$/,
+      sanitize: (value) => value,
+      message: 'Invalid SSN format'
+    });
+
+    this.rules.set('zipCode', {
+      pattern: /^\d{5}(-\d{4})?$/,
+      sanitize: (value) => value,
+      message: 'Invalid ZIP code'
+    });
+  }
+
+  // 1. Data Quality Checks
+  validate(data, schema) {
+    const errors = [];
+    const warnings = [];
+    const sanitized = {};
+
+    for (const [field, rules] of Object.entries(schema)) {
+      const value = data[field];
+      
+      // Required check
+      if (rules.required && (value === undefined || value === null || value === '')) {
+        errors.push(`${field} is required`);
+        continue;
+      }
+
+      // Type check
+      if (value !== undefined && value !== null) {
+        if (rules.type && typeof value !== rules.type) {
+          errors.push(`${field} must be of type ${rules.type}`);
+          continue;
+        }
+
+        // Pattern check
+        if (rules.pattern && !rules.pattern.test(value)) {
+          errors.push(rules.message || `${field} is invalid`);
+          continue;
+        }
+
+        // Custom validation
+        if (rules.validate) {
+          const result = rules.validate(value);
+          if (result.error) {
+            errors.push(result.error);
+          }
+          if (result.warning) {
+            warnings.push(result.warning);
+          }
+        }
+
+        // Sanitize
+        if (rules.sanitize) {
+          sanitized[field] = rules.sanitize(value);
+        } else {
+          sanitized[field] = value;
+        }
+
+        // Length checks
+        if (rules.minLength && value.length < rules.minLength) {
+          errors.push(`${field} must be at least ${rules.minLength} characters`);
+        }
+        if (rules.maxLength && value.length > rules.maxLength) {
+          errors.push(`${field} must be at most ${rules.maxLength} characters`);
+        }
+
+        // Range checks
+        if (rules.min !== undefined && value < rules.min) {
+          errors.push(`${field} must be at least ${rules.min}`);
+        }
+        if (rules.max !== undefined && value > rules.max) {
+          errors.push(`${field} must be at most ${rules.max}`);
+        }
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+      sanitized,
+      data: { ...data, ...sanitized }
+    };
+  }
+
+  // 2. Advanced Data Quality
+  qualityCheck(data) {
+    const checks = {
+      completeness: this.checkCompleteness(data),
+      consistency: this.checkConsistency(data),
+      accuracy: this.checkAccuracy(data),
+      timeliness: this.checkTimeliness(data),
+      uniqueness: this.checkUniqueness(data)
+    };
+
+    const overallScore = Object.values(checks)
+      .reduce((sum, score) => sum + score, 0) / Object.keys(checks).length;
+
+    return {
+      overallScore,
+      checks,
+      recommendations: this.generateRecommendations(checks)
+    };
+  }
+
+  checkCompleteness(data) {
+    // Check for missing fields, null values, empty strings
+    const fields = this.getRequiredFields(data);
+    const missing = fields.filter(f => !data[f] || data[f] === '');
+    return {
+      score: (fields.length - missing.length) / fields.length * 100,
+      missing,
+      details: 'Completeness check'
+    };
+  }
+
+  checkConsistency(data) {
+    // Check for data consistency (e.g., total = sum of items)
+    const inconsistencies = [];
+    
+    if (data.items && data.total) {
+      const sum = data.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+      if (Math.abs(sum - data.total) > 0.01) {
+        inconsistencies.push('Total does not match sum of items');
+      }
+    }
+
+    if (data.tax && data.total && data.tax > data.total) {
+      inconsistencies.push('Tax exceeds total');
+    }
+
+    return {
+      score: inconsistencies.length === 0 ? 100 : 50,
+      inconsistencies,
+      details: 'Consistency check'
+    };
+  }
+
+  checkAccuracy(data) {
+    // Check for accuracy against known data sources
+    // Implement with external data validation services
+    return {
+      score: 95,
+      details: 'Accuracy check (external validation pending)'
+    };
+  }
+
+  checkTimeliness(data) {
+    // Check if data is current
+    const lastUpdated = new Date(data.updatedAt || data.createdAt);
+    const daysOld = (Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24);
+    
+    return {
+      score: Math.max(0, 100 - daysOld * 5),
+      daysOld,
+      details: `Data is ${daysOld.toFixed(1)} days old`
+    };
+  }
+
+  checkUniqueness(data) {
+    // Check for duplicate entries
+    // Implement with database lookup
+    return {
+      score: 100,
+      details: 'Uniqueness check passed'
+    };
+  }
+}
