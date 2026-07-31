@@ -1,0 +1,286 @@
+// frontend/src/components/HistoricalDashboard.jsx
+import React, { useState, useEffect } from 'react';
+import { 
+  LineChart, Line, BarChart, Bar, 
+  XAxis, YAxis, CartesianGrid, 
+  Tooltip, Legend, ResponsiveContainer,
+  AreaChart, Area
+} from 'recharts';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+
+const HistoricalDashboard = ({ userId }) => {
+  const [view, setView] = useState('yearly'); // yearly, quarterly, monthly, custom
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedRange, setSelectedRange] = useState([null, null]);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('overview'); // overview, trends, comparison, search
+
+  useEffect(() => {
+    fetchHistoricalData();
+  }, [selectedYear, view, selectedRange]);
+
+  const fetchHistoricalData = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        year: selectedYear,
+        view: view
+      });
+
+      if (selectedRange[0] && selectedRange[1]) {
+        params.append('startDate', selectedRange[0].toISOString());
+        params.append('endDate', selectedRange[1].toISOString());
+      }
+
+      const response = await axios.get(
+        `/api/historical/${userId}?${params.toString()}`
+      );
+      setData(response.data);
+    } catch (error) {
+      console.error('Error fetching historical data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="historical-loading">📊 Loading historical data...</div>;
+  }
+
+  return (
+    <div className="historical-dashboard">
+      <div className="historical-header">
+        <h1>📜 Historical Financial Archive</h1>
+        
+        <div className="controls">
+          {/* Year Selector */}
+          <div className="control-group">
+            <label>Year:</label>
+            <select 
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+            >
+              {Array.from({ length: 10 }, (_, i) => {
+                const year = new Date().getFullYear() - i;
+                return (
+                  <option key={year} value={year}>{year}</option>
+                );
+              })}
+            </select>
+          </div>
+
+          {/* View Mode */}
+          <div className="control-group">
+            <label>View:</label>
+            <select value={view} onChange={(e) => setView(e.target.value)}>
+              <option value="yearly">Yearly Overview</option>
+              <option value="quarterly">Quarterly Breakdown</option>
+              <option value="monthly">Monthly Details</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+
+          {/* Custom Range Picker */}
+          {view === 'custom' && (
+            <div className="control-group">
+              <DatePicker
+                selectsRange={true}
+                startDate={selectedRange[0]}
+                endDate={selectedRange[1]}
+                onChange={(update) => setSelectedRange(update)}
+                placeholderText="Select date range"
+              />
+            </div>
+          )}
+
+          <button onClick={fetchHistoricalData} className="refresh-btn">
+            🔄 Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="summary-grid">
+        <SummaryCard 
+          title="Total Receipts"
+          value={data.summary.totalReceipts}
+          icon="🧾"
+          change={data.summary.receiptChange}
+        />
+        <SummaryCard 
+          title="Total Spent"
+          value={`$${data.summary.totalSpent.toFixed(2)}`}
+          icon="💰"
+          change={data.summary.spendingChange}
+        />
+        <SummaryCard 
+          title="Unique Vendors"
+          value={data.summary.uniqueVendors}
+          icon="🏪"
+        />
+        <SummaryCard 
+          title="Categories"
+          value={data.summary.categories}
+          icon="📂"
+        />
+        <SummaryCard 
+          title="Average Yearly"
+          value={`$${data.summary.averageYearly.toFixed(2)}`}
+          icon="📊"
+        />
+        <SummaryCard 
+          title="Total Tax"
+          value={`$${data.summary.totalTax.toFixed(2)}`}
+          icon="🧾"
+        />
+      </div>
+
+      {/* Main Charts */}
+      <div className="charts-grid">
+        {/* Yearly Spending Trend */}
+        <div className="chart-card large">
+          <h3>📈 Yearly Spending Trend</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={data.yearlyData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="year" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line 
+                type="monotone" 
+                dataKey="totalSpent" 
+                stroke="#8884d8" 
+                name="Total Spent"
+                strokeWidth={2}
+              />
+              <Area
+                type="monotone"
+                dataKey="totalSpent"
+                fill="#8884d8"
+                fillOpacity={0.1}
+                stroke="none"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Monthly Breakdown */}
+        <div className="chart-card">
+          <h3>📊 Monthly Breakdown</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={data.monthlyData}>
+              <XAxis dataKey="month" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="spent" fill="#82ca9d" name="Monthly Spend" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Category Distribution */}
+        <div className="chart-card">
+          <h3>🏷️ Category Distribution</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={data.categoryData} layout="vertical">
+              <XAxis type="number" />
+              <YAxis type="category" dataKey="category" width={100} />
+              <Tooltip />
+              <Bar dataKey="total" fill="#ffc658" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Top Vendors */}
+        <div className="chart-card">
+          <h3>🏪 Top Vendors</h3>
+          <div className="vendor-list">
+            {data.topVendors.map((vendor, index) => (
+              <div key={index} className="vendor-item">
+                <span className="rank">#{index + 1}</span>
+                <span className="name">{vendor.name}</span>
+                <span className="total">${vendor.total.toFixed(2)}</span>
+                <span className="count">{vendor.count} receipts</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Historical Insights */}
+      <div className="insights-section">
+        <h2>💡 Historical Insights</h2>
+        <div className="insights-grid">
+          {data.insights.map((insight, index) => (
+            <div key={index} className="insight-card">
+              <div className="insight-icon">{insight.icon}</div>
+              <div className="insight-content">
+                <h4>{insight.title}</h4>
+                <p>{insight.description}</p>
+                {insight.action && (
+                  <button className="action-btn" onClick={insight.action}>
+                    {insight.actionLabel || 'Learn More'}
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Timeline View */}
+      <div className="timeline-section">
+        <h2>⏳ Spending Timeline</h2>
+        <div className="timeline">
+          {data.timelineData.map((item, index) => (
+            <div key={index} className="timeline-item">
+              <div className="timeline-date">{item.date}</div>
+              <div className="timeline-content">
+                <div className="timeline-vendor">{item.vendor}</div>
+                <div className="timeline-amount">${item.total.toFixed(2)}</div>
+                <div className="timeline-category">{item.category}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Export Options */}
+      <div className="export-section">
+        <h2>📥 Export Historical Data</h2>
+        <div className="export-buttons">
+          <button onClick={() => exportData('pdf')}>
+            📄 Export PDF
+          </button>
+          <button onClick={() => exportData('csv')}>
+            📊 Export CSV
+          </button>
+          <button onClick={() => exportData('json')}>
+            📦 Export JSON
+          </button>
+          <button onClick={() => exportForTax()}>
+            🧾 Export for Taxes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Summary Card Component
+const SummaryCard = ({ title, value, icon, change }) => (
+  <div className="summary-card">
+    <div className="card-icon">{icon}</div>
+    <div className="card-content">
+      <div className="card-title">{title}</div>
+      <div className="card-value">{value}</div>
+      {change && (
+        <div className={`card-change ${change > 0 ? 'positive' : 'negative'}`}>
+          {change > 0 ? '↑' : '↓'} {Math.abs(change)}%
+        </div>
+      )}
+    </div>
+  </div>
+);
