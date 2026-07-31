@@ -1,0 +1,42 @@
+// frontend/src/components/AnalyticsDashboard.jsx
+const AdvancedAnalytics = ({ userId }) => {
+  return (
+    <div className="analytics-grid">
+      {/* Cash Flow Prediction */}
+      <PredictionChart 
+        data={predictCashFlow(userId)}
+        horizon="90 days"
+      />
+      
+      {/* Category Heatmap */}
+      <CategoryHeatmap 
+        data={getCategorySpending(userId)}
+        granularity="weekly"
+      />
+      
+      {/* Vendor Analysis */}
+      <VendorAnalytics 
+        data={getTopVendors(userId)}
+        metrics={['spending', 'frequency', 'avg']}
+      />
+      
+      {/* Seasonality Trends */}
+      <SeasonalityChart 
+        data={getSeasonalTrends(userId)}
+        compareTo="industryAverage"
+      />
+      
+      {/* Tax Optimization */}
+      <TaxOptimizer 
+        data={getTaxData(userId)}
+        strategies={['accelerate', 'defer', 'deduct']}
+      />
+      
+      {/* Anomaly Detection */}
+      <AnomalyAlert 
+        data={getAnomalies(userId)}
+        threshold="3σ"
+      />
+    </div>
+  );
+};
