@@ -1,0 +1,8 @@
+# Get license information
+curl https://api.github.com/licenses/MIT
+
+# Get repository license
+curl https://api.github.com/repos/your-username/the-fortress-hub/license
+
+# Get license content
+curl https://raw.githubusercontent.com/your-username/the-fortress-hub/main/LICENSE
