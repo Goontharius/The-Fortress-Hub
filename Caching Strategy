@@ -1,0 +1,71 @@
+// ❌ CURRENT ISSUE: No caching
+app.get('/api/analytics/:userId', async (req, res) => {
+  const result = await pgPool.query('...'); // Hits DB every time
+});
+
+// ✅ FIX: Multi-layer caching
+const cache = require('cache-manager');
+const redisStore = require('cache-manager-ioredis');
+
+const memoryCache = cache.caching({
+  store: 'memory',
+  max: 100, // Max items
+  ttl: 60 // 60 seconds
+});
+
+const redisCache = cache.caching({
+  store: redisStore,
+  redisInstance: config.redis,
+  ttl: 3600 // 1 hour
+});
+
+// Multi-tier cache
+class CacheService {
+  async get(key, fetchFunction) {
+    // Check memory first (fastest)
+    let value = await memoryCache.get(key);
+    if (value) return value;
+    
+    // Check Redis
+    value = await redisCache.get(key);
+    if (value) {
+      // Populate memory for next time
+      await memoryCache.set(key, value);
+      return value;
+    }
+    
+    // Fetch from source
+    value = await fetchFunction();
+    
+    // Store in both caches
+    await Promise.all([
+      memoryCache.set(key, value),
+      redisCache.set(key, value)
+    ]);
+    
+    return value;
+  }
+}
+
+// Use in analytics
+app.get('/api/analytics/:userId', authMiddleware, async (req, res) => {
+  const cacheKey = `analytics:${req.params.userId}:${req.query.period}`;
+  
+  const data = await cacheService.get(cacheKey, async () => {
+    return await fetchAnalytics(req.params.userId, req.query.period);
+  });
+  
+  res.json(data);
+});
+
+// Cache invalidation on updates
+app.post('/api/upload', async (req, res) => {
+  // ... upload logic
+  
+  // Invalidate caches
+  await Promise.all([
+    redisCache.del(`analytics:${userId}:*`),
+    redisCache.del(`receipts:${userId}:*`),
+    redisCache.del(`dashboard:${userId}`)
+  ]);
+});
