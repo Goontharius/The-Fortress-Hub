@@ -1,4 +1,3 @@
-import { Receipt } from "../models/receipt";
 import * as sqliteStore from "./sqliteStore";
 
 export const listReceipts = sqliteStore.listReceipts;
