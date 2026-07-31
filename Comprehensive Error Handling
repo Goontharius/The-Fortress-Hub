@@ -1,0 +1,97 @@
+// ❌ CURRENT ISSUE: Basic error handling
+try {
+  // code
+} catch (error) {
+  console.error(error);
+  res.status(500).json({ error: error.message });
+}
+
+// ✅ FIX: Global error handler with error types
+class AppError extends Error {
+  constructor(message, code, statusCode, details = null) {
+    super(message);
+    this.code = code;
+    this.statusCode = statusCode;
+    this.details = details;
+    this.timestamp = new Date().toISOString();
+  }
+}
+
+// Error types
+const ErrorTypes = {
+  NOT_FOUND: new AppError('Resource not found', 'NOT_FOUND', 404),
+  UNAUTHORIZED: new AppError('Unauthorized', 'UNAUTHORIZED', 401),
+  FORBIDDEN: new AppError('Forbidden', 'FORBIDDEN', 403),
+  VALIDATION_ERROR: (details) => new AppError('Validation failed', 'VALIDATION_ERROR', 400, details),
+  RATE_LIMIT: new AppError('Rate limit exceeded', 'RATE_LIMIT', 429),
+  INTERNAL_ERROR: new AppError('Internal server error', 'INTERNAL_ERROR', 500),
+  SERVICE_UNAVAILABLE: new AppError('Service unavailable', 'SERVICE_UNAVAILABLE', 503),
+  STORAGE_ERROR: (reason) => new AppError(`Storage error: ${reason}`, 'STORAGE_ERROR', 500),
+  OCR_ERROR: (reason) => new AppError(`OCR failed: ${reason}`, 'OCR_ERROR', 500),
+  DUPLICATE_ERROR: (details) => new AppError('Duplicate receipt detected', 'DUPLICATE', 409, details)
+};
+
+// Global error middleware
+app.use((err, req, res, next) => {
+  // Log with context
+  console.error({
+    error: err.message,
+    stack: err.stack,
+    code: err.code,
+    path: req.path,
+    method: req.method,
+    userId: req.user?.id,
+    requestId: req.id,
+    ip: req.ip
+  });
+
+  // Determine response
+  const statusCode = err.statusCode || 500;
+  const response = {
+    error: err.message || 'Internal Server Error',
+    code: err.code || 'INTERNAL_ERROR',
+    timestamp: new Date().toISOString(),
+    requestId: req.id
+  };
+
+  // Add details in development
+  if (process.env.NODE_ENV === 'development') {
+    response.stack = err.stack;
+    response.details = err.details;
+  }
+
+  // Specific error handling
+  if (err.code === 'VALIDATION_ERROR') {
+    response.fields = err.details;
+  }
+
+  // Database errors
+  if (err.code === '23505') { // Unique violation
+    return res.status(409).json({
+      error: 'Duplicate entry',
+      code: 'DUPLICATE',
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  res.status(statusCode).json(response);
+});
+
+// Unhandled rejection handler
+process.on('unhandledRejection', (error) => {
+  console.error('UNHANDLED REJECTION:', error);
+  // Send to monitoring service
+  sendToMonitoring({ type: 'unhandledRejection', error });
+  // Graceful shutdown for critical errors
+  if (error.fatal) {
+    process.exit(1);
+  }
+});
+
+// Uncaught exception handler
+process.on('uncaughtException', (error) => {
+  console.error('UNCAUGHT EXCEPTION:', error);
+  sendToMonitoring({ type: 'uncaughtException', error });
+  // Always exit on uncaught exception
+  process.exit(1);
+});
