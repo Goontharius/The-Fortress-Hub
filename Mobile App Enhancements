@@ -1,0 +1,56 @@
+// mobile/src/features/OfflineMode.js
+class OfflineReceiptManager {
+  constructor() {
+    this.queue = [];
+    this.syncInProgress = false;
+  }
+  
+  // Store receipts offline
+  async storeOffline(receiptImage) {
+    const id = uuidv4();
+    const receipt = {
+      id,
+      image: receiptImage,
+      timestamp: Date.now(),
+      status: 'pending_sync',
+      metadata: {
+        location: await getCurrentLocation(),
+        device: DeviceInfo.getUniqueId()
+      }
+    };
+    
+    await AsyncStorage.setItem(`receipt:${id}`, JSON.stringify(receipt));
+    this.queue.push(id);
+    
+    // Auto-sync when online
+    if (await NetInfo.isConnected()) {
+      this.syncNow();
+    }
+    
+    return id;
+  }
+  
+  // Sync when online
+  async syncNow() {
+    if (this.syncInProgress) return;
+    this.syncInProgress = true;
+    
+    for (const id of this.queue) {
+      const receipt = JSON.parse(await AsyncStorage.getItem(`receipt:${id}`));
+      await this.uploadReceipt(receipt);
+      await AsyncStorage.removeItem(`receipt:${id}`);
+    }
+    
+    this.queue = [];
+    this.syncInProgress = false;
+  }
+  
+  // Background sync
+  setupBackgroundSync() {
+    AppState.addEventListener('change', (state) => {
+      if (state === 'active' && this.queue.length > 0) {
+        this.syncNow();
+      }
+    });
+  }
+}
