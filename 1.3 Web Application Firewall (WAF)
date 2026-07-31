@@ -1,0 +1,260 @@
+// backend/security/waf.js
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const xss = require('xss');
+const { createProxyMiddleware } = require('http-proxy-middleware');
+
+class WebApplicationFirewall {
+  constructor() {
+    this.rules = new Map();
+    this.blacklistedIPs = new Set();
+    this.suspiciousPatterns = [
+      /(\b)(select|union|insert|delete|update|drop|alter)(\b)/i,
+      /(\b)(exec|xp_cmdshell|sp_executesql|wscript)(\b)/i,
+      /(\%27)|(\')|(\-\-)|(\%23)|(#)/,
+      /(\b)(onload|onerror|onclick|onmouseover)(\b)/i
+    ];
+  }
+
+  // 1. Security Headers
+  securityHeaders() {
+    return helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+          styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+          imgSrc: ["'self'", 'data:', '*.amazonaws.com'],
+          connectSrc: ["'self'", '*.googleapis.com'],
+          fontSrc: ["'self'", 'cdn.jsdelivr.net'],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+          formAction: ["'self'"]
+        }
+      },
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+      },
+      frameguard: { action: 'deny' },
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      noSniff: true,
+      hidePoweredBy: true,
+      xssFilter: true,
+      ieNoOpen: true
+    });
+  }
+
+  // 2. Rate Limiting with Permissions
+  rateLimiters() {
+    return {
+      // Global rate limit
+      global: rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 100,
+        message: 'Too many requests, please try again later.',
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: (req) => {
+          return req.ip || req.connection.remoteAddress;
+        }
+      }),
+      
+      // API rate limit
+      api: rateLimit({
+        windowMs: 1 * 60 * 1000,
+        max: 60,
+        message: 'API rate limit exceeded.',
+        keyGenerator: (req) => {
+          return req.user ? req.user.id : req.ip;
+        }
+      }),
+      
+      // Upload rate limit
+      upload: rateLimit({
+        windowMs: 60 * 60 * 1000,
+        max: 20,
+        message: 'Upload limit exceeded. Please wait.',
+        keyGenerator: (req) => {
+          return req.user ? req.user.id : req.ip;
+        }
+      }),
+      
+      // Authentication rate limit
+      auth: rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 5,
+        message: 'Too many authentication attempts.',
+        keyGenerator: (req) => {
+          return req.body.email || req.ip;
+        }
+      })
+    };
+  }
+
+  // 3. SQL Injection Prevention
+  preventSQLInjection(req, res, next) {
+    const checkValue = (value) => {
+      if (typeof value === 'string') {
+        // Check for suspicious patterns
+        for (const pattern of this.suspiciousPatterns) {
+          if (pattern.test(value)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    const checkObject = (obj) => {
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          if (typeof obj[key] === 'string' && checkValue(obj[key])) {
+            return true;
+          }
+          if (typeof obj[key] === 'object' && checkObject(obj[key])) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    // Check all inputs
+    if (req.body && checkObject(req.body)) {
+      return res.status(400).json({
+        error: 'Invalid input detected',
+        code: 'WAF_001'
+      });
+    }
+
+    if (req.query && checkObject(req.query)) {
+      return res.status(400).json({
+        error: 'Invalid query parameters',
+        code: 'WAF_002'
+      });
+    }
+
+    next();
+  }
+
+  // 4. XSS Protection
+  sanitizeInputs(req, res, next) {
+    const sanitize = (obj) => {
+      if (typeof obj === 'string') {
+        return xss(obj, {
+          whiteList: {}, // Remove all tags
+          stripIgnoreTag: true,
+          stripIgnoreTagBody: ['script']
+        });
+      }
+      if (Array.isArray(obj)) {
+        return obj.map(item => sanitize(item));
+      }
+      if (typeof obj === 'object' && obj !== null) {
+        const sanitized = {};
+        for (const key in obj) {
+          sanitized[key] = sanitize(obj[key]);
+        }
+        return sanitized;
+      }
+      return obj;
+    };
+
+    if (req.body) {
+      req.body = sanitize(req.body);
+    }
+    if (req.query) {
+      req.query = sanitize(req.query);
+    }
+    if (req.params) {
+      req.params = sanitize(req.params);
+    }
+
+    next();
+  }
+
+  // 5. IP Blacklisting
+  ipBlacklist(req, res, next) {
+    const clientIP = req.ip || req.connection.remoteAddress;
+    
+    if (this.blacklistedIPs.has(clientIP)) {
+      return res.status(403).json({
+        error: 'Access denied',
+        code: 'WAF_003'
+      });
+    }
+
+    // Check against threat intelligence feeds
+    this.checkThreatIntelligence(clientIP);
+
+    next();
+  }
+
+  async checkThreatIntelligence(ip) {
+    // Implement with services like:
+    // - AbuseIPDB
+    // - VirusTotal
+    // - IP2Location
+    // - ThreatCrowd
+  }
+
+  // 6. Request Validation
+  validateRequest(req, res, next) {
+    // Check request size
+    const contentLength = req.headers['content-length'];
+    if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
+      return res.status(413).json({
+        error: 'Request too large',
+        code: 'WAF_004'
+      });
+    }
+
+    // Check for abnormal headers
+    const suspiciousHeaders = ['x-requested-with', 'x-http-method-override'];
+    for (const header of suspiciousHeaders) {
+      if (req.headers[header]) {
+        // Log suspicious activity
+        console.warn(`Suspicious header detected: ${header}`);
+      }
+    }
+
+    // Check user-agent
+    const userAgent = req.headers['user-agent'];
+    if (!userAgent || userAgent.length > 500) {
+      return res.status(400).json({
+        error: 'Invalid user agent',
+        code: 'WAF_005'
+      });
+    }
+
+    next();
+  }
+
+  // 7. Response Integrity
+  responseIntegrity(req, res, next) {
+    const originalSend = res.send;
+    const originalJson = res.json;
+    
+    res.send = function(data) {
+      // Add response signature
+      if (typeof data === 'string') {
+        this.set('X-Content-Signature', crypto.createHash('sha256')
+          .update(data)
+          .digest('hex'));
+      }
+      originalSend.call(this, data);
+    };
+    
+    res.json = function(data) {
+      const jsonData = JSON.stringify(data);
+      this.set('X-Content-Signature', crypto.createHash('sha256')
+        .update(jsonData)
+        .digest('hex'));
+      originalJson.call(this, data);
+    };
+    
+    next();
+  }
+}
