@@ -1,0 +1,10 @@
+# Run this to set up historical storage
+npm run setup:historical
+
+# This will:
+# 1. Create archive tables
+# 2. Set up storage tiers
+# 3. Index existing data
+# 4. Create first year archives
+# 5. Configure cron jobs
+# 6. Test the system
