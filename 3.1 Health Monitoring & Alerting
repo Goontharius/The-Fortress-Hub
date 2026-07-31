@@ -1,0 +1,268 @@
+// backend/monitoring/health.js
+class HealthMonitor {
+  constructor() {
+    this.checks = new Map();
+    this.alerts = [];
+    this.status = 'healthy';
+    this.metrics = {
+      uptime: 0,
+      requests: 0,
+      errors: 0,
+      responseTime: []
+    };
+    
+    this.initChecks();
+    this.startPeriodicChecks();
+  }
+
+  initChecks() {
+    this.checks.set('database', {
+      name: 'Database',
+      check: async () => {
+        const result = await pgPool.query('SELECT 1');
+        return {
+          healthy: true,
+          latency: result.latency,
+          connections: pgPool.totalCount
+        };
+      },
+      interval: 30000,
+      critical: true
+    });
+
+    this.checks.set('redis', {
+      name: 'Redis',
+      check: async () => {
+        const ping = await config.redis.ping();
+        return {
+          healthy: ping === 'PONG',
+          latency: config.redis.latency || 0
+        };
+      },
+      interval: 30000,
+      critical: true
+    });
+
+    this.checks.set('s3', {
+      name: 'AWS S3',
+      check: async () => {
+        const result = await config.s3.headBucket({
+          Bucket: config.bucket
+        }).promise();
+        return {
+          healthy: result.$response.error === null,
+          status: 'available'
+        };
+      },
+      interval: 60000,
+      critical: true
+    });
+
+    this.checks.set('gemini', {
+      name: 'Gemini AI',
+      check: async () => {
+        const model = config.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        await model.generateContent('Test');
+        return {
+          healthy: true,
+          status: 'available'
+        };
+      },
+      interval: 120000,
+      critical: true
+    });
+
+    this.checks.set('memory', {
+      name: 'Memory Usage',
+      check: () => {
+        const usage = process.memoryUsage();
+        const threshold = 0.9; // 90%
+        const heapUsed = usage.heapUsed / usage.heapTotal;
+        return {
+          healthy: heapUsed < threshold,
+          heapUsed: heapUsed,
+          heapTotal: usage.heapTotal,
+          rss: usage.rss,
+          external: usage.external
+        };
+      },
+      interval: 10000,
+      critical: true
+    });
+
+    this.checks.set('disk', {
+      name: 'Disk Space',
+      check: async () => {
+        const disk = require('diskusage');
+        const path = require('path');
+        const usage = await disk.check(path.join(__dirname, '..'));
+        const threshold = 0.9;
+        return {
+          healthy: usage.available / usage.total > (1 - threshold),
+          available: usage.available,
+          total: usage.total,
+          usedPercent: 1 - (usage.available / usage.total)
+        };
+      },
+      interval: 60000,
+      critical: true
+    });
+  }
+
+  async performCheck(checkName) {
+    const check = this.checks.get(checkName);
+    if (!check) return null;
+
+    const start = Date.now();
+    try {
+      const result = await check.check();
+      const duration = Date.now() - start;
+      
+      const status = {
+        name: check.name,
+        healthy: result.healthy,
+        duration,
+        timestamp: new Date().toISOString(),
+        details: result,
+        critical: check.critical
+      };
+
+      if (!result.healthy) {
+        await this.handleFailure(status);
+      }
+
+      return status;
+    } catch (error) {
+      const status = {
+        name: check.name,
+        healthy: false,
+        duration: Date.now() - start,
+        timestamp: new Date().toISOString(),
+        error: error.message,
+        critical: check.critical
+      };
+
+      await this.handleFailure(status);
+      return status;
+    }
+  }
+
+  async handleFailure(status) {
+    this.status = 'degraded';
+    
+    // Increment failure count
+    this.metrics.errors++;
+    
+    // Store failure
+    await this.storeFailure(status);
+    
+    // Trigger alert if critical
+    if (status.critical) {
+      await this.triggerAlert({
+        type: 'critical_service_failure',
+        service: status.name,
+        error: status.error || 'Unhealthy',
+        timestamp: status.timestamp
+      });
+    }
+
+    // Attempt recovery
+    await this.attemptRecovery(status.name);
+  }
+
+  async attemptRecovery(service) {
+    console.log(`Attempting recovery for ${service}`);
+    
+    switch (service) {
+      case 'Database':
+        await this.recoverDatabase();
+        break;
+      case 'Redis':
+        await this.recoverRedis();
+        break;
+      case 'S3':
+        await this.recoverS3();
+        break;
+      default:
+        break;
+    }
+  }
+
+  // Performance metrics
+  trackRequest(req, res, duration) {
+    this.metrics.requests++;
+    this.metrics.responseTime.push(duration);
+    
+    // Keep only last 1000 response times
+    if (this.metrics.responseTime.length > 1000) {
+      this.metrics.responseTime = this.metrics.responseTime.slice(-1000);
+    }
+
+    // Update status based on performance
+    const avgResponse = this.getAverageResponseTime();
+    if (avgResponse > 5000) { // 5 seconds
+      this.status = 'degraded';
+    } else if (avgResponse > 2000) {
+      this.status = 'warning';
+    } else {
+      this.status = 'healthy';
+    }
+  }
+
+  getAverageResponseTime() {
+    const times = this.metrics.responseTime;
+    if (times.length === 0) return 0;
+    return times.reduce((a, b) => a + b, 0) / times.length;
+  }
+
+  // Alert system
+  async triggerAlert(alert) {
+    // Priority levels
+    const priority = this.calculatePriority(alert);
+    alert.priority = priority;
+
+    // Store alert
+    this.alerts.push({
+      ...alert,
+      id: crypto.randomUUID(),
+      acknowledged: false,
+      resolved: false,
+      createdAt: new Date().toISOString()
+    });
+
+    // Send notifications based on priority
+    if (priority === 'critical') {
+      await this.sendCriticalAlert(alert);
+    } else if (priority === 'high') {
+      await this.sendHighPriorityAlert(alert);
+    }
+
+    // Keep only last 1000 alerts
+    if (this.alerts.length > 1000) {
+      this.alerts = this.alerts.slice(-1000);
+    }
+  }
+
+  calculatePriority(alert) {
+    if (alert.type === 'critical_service_failure' || alert.type === 'data_loss') {
+      return 'critical';
+    }
+    if (alert.type === 'degraded_performance' || alert.type === 'high_error_rate') {
+      return 'high';
+    }
+    if (alert.type === 'warning' || alert.type === 'deprecation') {
+      return 'medium';
+    }
+    return 'low';
+  }
+
+  async sendCriticalAlert(alert) {
+    // Send to multiple channels
+    await Promise.all([
+      this.sendEmailAlert(alert),
+      this.sendSlackAlert(alert),
+      this.sendPagerDutyAlert(alert),
+      this.sendSMSAlert(alert)
+    ]);
+  }
+}
