@@ -2,6 +2,20 @@ import sqlite3 from "sqlite3";
 import { open, Database } from "sqlite";
 import { Receipt } from "../models/receipt";
 
+type ReceiptRow = {
+  id: string;
+  vendor: string;
+  amount: number;
+  currency: string;
+  date: string;
+  category: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  sourceFilename: string | null;
+  sourceUploadedAt: string | null;
+};
+
 let db: Database<sqlite3.Database, sqlite3.Statement> | null = null;
 
 export async function openDb(): Promise<
@@ -33,7 +47,7 @@ export async function openDb(): Promise<
   return db;
 }
 
-function mapRow(row: any): Receipt {
+function mapRow(row: ReceiptRow): Receipt {
   return {
     id: row.id,
     vendor: row.vendor,
@@ -56,13 +70,15 @@ function mapRow(row: any): Receipt {
 
 export async function listReceipts(): Promise<Receipt[]> {
   const db = await openDb();
-  const rows = await db.all(`SELECT * FROM receipts ORDER BY createdAt DESC`);
+  const rows = await db.all<ReceiptRow[]>(
+    `SELECT * FROM receipts ORDER BY createdAt DESC`,
+  );
   return rows.map(mapRow);
 }
 
 export async function getReceipt(id: string): Promise<Receipt | undefined> {
   const db = await openDb();
-  const row = await db.get(`SELECT * FROM receipts WHERE id = ?`, id);
+  const row = await db.get<ReceiptRow>(`SELECT * FROM receipts WHERE id = ?`, id);
   return row ? mapRow(row) : undefined;
 }
 

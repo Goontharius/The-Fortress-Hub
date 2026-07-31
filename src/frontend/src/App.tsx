@@ -84,7 +84,7 @@ function App() {
       setCategory("Supplies");
       setNotes("");
       setEditReceiptId(null);
-    } catch (error) {
+    } catch {
       setStatus(
         editReceiptId ? "Unable to update receipt." : "Unable to save receipt.",
       );
