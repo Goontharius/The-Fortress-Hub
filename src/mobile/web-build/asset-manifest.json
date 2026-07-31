@@ -8,8 +8,5 @@
     "main.fd21b96a.js.map": "/static/js/main.fd21b96a.js.map",
     "578.8b6af19d.js.map": "/static/js/578.8b6af19d.js.map"
   },
-  "entrypoints": [
-    "static/js/578.8b6af19d.js",
-    "static/js/main.fd21b96a.js"
-  ]
+  "entrypoints": ["static/js/578.8b6af19d.js", "static/js/main.fd21b96a.js"]
 }

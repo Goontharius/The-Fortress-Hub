@@ -78,7 +78,10 @@ export async function listReceipts(): Promise<Receipt[]> {
 
 export async function getReceipt(id: string): Promise<Receipt | undefined> {
   const db = await openDb();
-  const row = await db.get<ReceiptRow>(`SELECT * FROM receipts WHERE id = ?`, id);
+  const row = await db.get<ReceiptRow>(
+    `SELECT * FROM receipts WHERE id = ?`,
+    id,
+  );
   return row ? mapRow(row) : undefined;
 }
 

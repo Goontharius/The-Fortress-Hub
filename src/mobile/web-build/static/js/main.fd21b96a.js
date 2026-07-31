@@ -1,2 +1,564 @@
-(()=>{"use strict";var e={6321(e,t,r){r.r(t),r.d(t,{default:()=>z});var n,o,l,i,a,u,s=r(4586),d=r(4619),c=r(2061),f=r(6330),p=r(9399),h=r(7917),y=r(5225),b=r(6729),g=r(3771),x=r(3780),j=r(1553),m=r(5685),v=r(5346),w=r(3390),O=r(606),S=r(7904),T=r(2745),C=r(575);function P(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter(function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable})),r.push.apply(r,n)}return r}function k(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?P(Object(r),!0).forEach(function(t){(0,s.default)(e,t,r[t])}):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):P(Object(r)).forEach(function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))})}return e}var B=null!=(n=null==(o=T.default.expoConfig)||null==(l=o.extra)?void 0:l.apiBase)?n:"http://localhost:4000",D={Authorization:`Bearer ${null!=(i=null==(a=T.default.expoConfig)||null==(u=a.extra)?void 0:u.apiToken)?i:"fortress-hub-api-token"}`};function E(){return(E=(0,f.default)(function*(){var e=yield fetch(`${B}/receipts`,{headers:D});if(!e.ok)throw new Error("Unable to load receipts");return e.json()})).apply(this,arguments)}function R(){return(R=(0,f.default)(function*(e){var t=yield fetch(`${B}/receipts`,{method:"POST",headers:k({"Content-Type":"application/json"},D),body:JSON.stringify(e)});if(!t.ok)throw new Error("Unable to save receipt");return t.json()})).apply(this,arguments)}function A(){return(A=(0,f.default)(function*(e,t){var r=yield fetch(`${B}/receipts/${e}`,{method:"PUT",headers:k({"Content-Type":"application/json"},D),body:JSON.stringify(t)});if(!r.ok)throw new Error("Unable to update receipt");return r.json()})).apply(this,arguments)}function M(){return(M=(0,f.default)(function*(e){if(!(yield fetch(`${B}/receipts/${e}`,{method:"DELETE",headers:D})).ok)throw new Error("Unable to delete receipt")})).apply(this,arguments)}var $=m.default.create({safeArea:{flex:1,backgroundColor:"#f7f7fb"},container:{padding:16,gap:16},title:{fontSize:28,fontWeight:"700",marginBottom:4},subtitle:{fontSize:16,color:"#555"},card:{backgroundColor:"#fff",borderRadius:16,padding:16,shadowColor:"#000",shadowOpacity:.08,shadowRadius:16,elevation:4},sectionHeader:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",marginBottom:12},sectionTitle:{fontSize:18,fontWeight:"700"},input:{borderWidth:1,borderColor:"#ddd",borderRadius:12,padding:12,marginBottom:12},textArea:{minHeight:86,textAlignVertical:"top"},buttonRow:{flexDirection:"row",gap:12,justifyContent:"space-between"},listItem:{padding:12,borderBottomWidth:1,borderBottomColor:"#eee",flexDirection:"row",justifyContent:"space-between",alignItems:"center"},listItemText:{flex:1,marginRight:12},itemVendor:{fontSize:16,fontWeight:"700"},itemMeta:{color:"#666",marginBottom:4},listButtons:{flexDirection:"row",gap:8},actionButton:{paddingVertical:6,paddingHorizontal:10,borderRadius:10,backgroundColor:"#1f8ef1"},deleteButton:{backgroundColor:"#e63946"},actionText:{color:"#fff",fontWeight:"700"},emptyText:{padding:12,color:"#666"}});const z=function(){var e=(0,p.useState)([]),t=(0,c.default)(e,2),r=t[0],n=t[1],o=(0,p.useState)(""),l=(0,c.default)(o,2),i=l[0],a=l[1],u=(0,p.useState)(""),s=(0,c.default)(u,2),m=s[0],T=s[1],P=(0,p.useState)(""),k=(0,c.default)(P,2),B=k[0],D=k[1],z=(0,p.useState)("Supplies"),I=(0,c.default)(z,2),U=I[0],V=I[1],W=(0,p.useState)(""),H=(0,c.default)(W,2),N=H[0],F=H[1],Y=(0,p.useState)(!0),_=(0,c.default)(Y,2),L=_[0],J=_[1],q=(0,p.useState)(!1),G=(0,c.default)(q,2),K=G[0],Q=G[1],X=(0,p.useState)(null),Z=(0,c.default)(X,2),ee=Z[0],te=Z[1];(0,p.useEffect)(function(){ne()},[]);var re=(0,p.useMemo)(function(){return parseFloat(m)||0},[m]);function ne(){return oe.apply(this,arguments)}function oe(){return oe=(0,f.default)(function*(){J(!0);try{var e=yield function(){return E.apply(this,arguments)}();n(e)}catch(t){y.default.alert("Load error",String(t))}finally{J(!1)}}),oe.apply(this,arguments)}function le(){return le=(0,f.default)(function*(){if(i&&m&&B){Q(!0);try{var e={vendor:i,amount:re,currency:"USD",date:B,category:U,notes:N||void 0},t=ee?yield function(e,t){return A.apply(this,arguments)}(ee,e):yield function(e){return R.apply(this,arguments)}(e);n(function(e){return ee?e.map(function(e){return e.id===t.id?t:e}):[t].concat((0,d.default)(e))}),a(""),T(""),D(""),V("Supplies"),F(""),te(null)}catch(r){y.default.alert("Save error",String(r))}finally{Q(!1)}}else y.default.alert("Validation","Vendor, amount, and date are required.")}),le.apply(this,arguments)}function ie(){return ie=(0,f.default)(function*(e){try{yield function(e){return M.apply(this,arguments)}(e),n(function(t){return t.filter(function(t){return t.id!==e})})}catch(t){y.default.alert("Delete error",String(t))}}),ie.apply(this,arguments)}return(0,C.jsx)(x.default,{style:$.safeArea,children:(0,C.jsxs)(j.default,{contentContainerStyle:$.container,keyboardShouldPersistTaps:"handled",children:[(0,C.jsx)(v.default,{style:$.title,children:"The Fortress Hub Mobile"}),(0,C.jsx)(v.default,{style:$.subtitle,children:"Secure receipt tracking with backend persistence."}),(0,C.jsxs)(S.default,{style:$.card,children:[(0,C.jsx)(v.default,{style:$.sectionTitle,children:ee?"Edit Receipt":"New Receipt"}),(0,C.jsx)(w.default,{style:$.input,placeholder:"Vendor",value:i,onChangeText:a}),(0,C.jsx)(w.default,{style:$.input,placeholder:"Amount",keyboardType:"decimal-pad",value:m,onChangeText:T}),(0,C.jsx)(w.default,{style:$.input,placeholder:"Date (YYYY-MM-DD)",value:B,onChangeText:D}),(0,C.jsx)(w.default,{style:$.input,placeholder:"Category",value:U,onChangeText:V}),(0,C.jsx)(w.default,{style:[$.input,$.textArea],placeholder:"Notes",value:N,onChangeText:F,multiline:!0}),(0,C.jsxs)(S.default,{style:$.buttonRow,children:[(0,C.jsx)(b.default,{title:ee?"Update":"Save",onPress:function(){return le.apply(this,arguments)},disabled:K}),ee?(0,C.jsx)(b.default,{title:"Cancel",onPress:function(){return te(null)},color:"#888"}):null]})]}),(0,C.jsxs)(S.default,{style:$.card,children:[(0,C.jsxs)(S.default,{style:$.sectionHeader,children:[(0,C.jsx)(v.default,{style:$.sectionTitle,children:"Receipts"}),(0,C.jsx)(b.default,{title:"Refresh",onPress:ne})]}),L?(0,C.jsx)(h.default,{size:"large"}):(0,C.jsx)(g.default,{data:r,keyExtractor:function(e){return e.id},renderItem:function(e){var t=e.item;return(0,C.jsxs)(S.default,{style:$.listItem,children:[(0,C.jsxs)(S.default,{style:$.listItemText,children:[(0,C.jsx)(v.default,{style:$.itemVendor,children:t.vendor}),(0,C.jsxs)(v.default,{style:$.itemMeta,children:[t.date," \u2022 ",t.category]}),(0,C.jsxs)(v.default,{children:["$",t.amount.toFixed(2)]})]}),(0,C.jsxs)(S.default,{style:$.listButtons,children:[(0,C.jsx)(O.default,{onPress:function(){return function(e){var t;te(e.id),a(e.vendor),T(e.amount.toString()),D(e.date),V(e.category),F(null!=(t=e.notes)?t:"")}(t)},style:$.actionButton,children:(0,C.jsx)(v.default,{style:$.actionText,children:"Edit"})}),(0,C.jsx)(O.default,{onPress:function(){return function(e){return ie.apply(this,arguments)}(t.id)},style:[$.actionButton,$.deleteButton],children:(0,C.jsx)(v.default,{style:$.actionText,children:"Delete"})})]})]})},ListEmptyComponent:(0,C.jsx)(v.default,{style:$.emptyText,children:"No receipts available."})})]})]})})}}};const t={};function r(n){const o=t[n];if(void 0!==o)return o.exports;const l=t[n]={exports:{}};return e[n].call(l.exports,l,l.exports,r),l.exports}r.m=e,(()=>{const e=[];r.O=(t,n,o,l)=>{if(n){l=l||0;for(var i=e.length;i>0&&e[i-1][2]>l;i--)e[i]=e[i-1];return void(e[i]=[n,o,l])}let a=1/0;for(i=0;i<e.length;i++){let[n,o,l]=e[i],s=!0;for(var u=0;u<n.length;u++)(!1&l||a>=l)&&Object.keys(r.O).every(e=>r.O[e](n[u]))?n.splice(u--,1):(s=!1,l<a&&(a=l));if(s){e.splice(i--,1);const r=o();void 0!==r&&(t=r)}}return t}})(),r.n=e=>{const t=e&&e.__esModule?()=>e.default:()=>e;return r.d(t,{a:t}),t},r.d=(e,t)=>{if(Array.isArray(t))for(var n=0;n<t.length;){var o=t[n++],l=t[n++];r.o(e,o)?0===l&&n++:0===l?Object.defineProperty(e,o,{enumerable:!0,value:t[n++]}):Object.defineProperty(e,o,{enumerable:!0,get:l})}else for(var o in t)r.o(t,o)&&!r.o(e,o)&&Object.defineProperty(e,o,{enumerable:!0,get:t[o]})},r.g=function(){if("object"===typeof globalThis)return globalThis;try{return this||new Function("return this")()}catch(e){if("object"===typeof window)return window}}(),r.o=(e,t)=>Object.prototype.hasOwnProperty.call(e,t),r.r=e=>{Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},r.cjs=e=>{const t={exports:{}};return e.call(t.exports,t,t.exports),t.exports},(()=>{const e={792:0};r.O.j=t=>0===e[t];const t=(t,n)=>{let[o,l,i]=n;var a,u,s=0;if(o.some(t=>0!==e[t])){for(a in l)r.o(l,a)&&(r.m[a]=l[a]);if(i)var d=i(r)}for(t&&t(n);s<o.length;s++)u=o[s],r.o(e,u)&&e[u]&&e[u][0](),e[u]=0;return r.O(d)},n=self.webpackChunkweb=self.webpackChunkweb||[];n.forEach(t.bind(null,0)),n.push=t.bind(null,n.push.bind(n))})();let n=r.O(void 0,[578],()=>r(1826));n=r.O(n)})();
+(() => {
+  "use strict";
+  var e = {
+    6321(e, t, r) {
+      (r.r(t), r.d(t, { default: () => z }));
+      var n,
+        o,
+        l,
+        i,
+        a,
+        u,
+        s = r(4586),
+        d = r(4619),
+        c = r(2061),
+        f = r(6330),
+        p = r(9399),
+        h = r(7917),
+        y = r(5225),
+        b = r(6729),
+        g = r(3771),
+        x = r(3780),
+        j = r(1553),
+        m = r(5685),
+        v = r(5346),
+        w = r(3390),
+        O = r(606),
+        S = r(7904),
+        T = r(2745),
+        C = r(575);
+      function P(e, t) {
+        var r = Object.keys(e);
+        if (Object.getOwnPropertySymbols) {
+          var n = Object.getOwnPropertySymbols(e);
+          (t &&
+            (n = n.filter(function (t) {
+              return Object.getOwnPropertyDescriptor(e, t).enumerable;
+            })),
+            r.push.apply(r, n));
+        }
+        return r;
+      }
+      function k(e) {
+        for (var t = 1; t < arguments.length; t++) {
+          var r = null != arguments[t] ? arguments[t] : {};
+          t % 2
+            ? P(Object(r), !0).forEach(function (t) {
+                (0, s.default)(e, t, r[t]);
+              })
+            : Object.getOwnPropertyDescriptors
+              ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(r))
+              : P(Object(r)).forEach(function (t) {
+                  Object.defineProperty(
+                    e,
+                    t,
+                    Object.getOwnPropertyDescriptor(r, t),
+                  );
+                });
+        }
+        return e;
+      }
+      var B =
+          null !=
+          (n =
+            null == (o = T.default.expoConfig) || null == (l = o.extra)
+              ? void 0
+              : l.apiBase)
+            ? n
+            : "http://localhost:4000",
+        D = {
+          Authorization: `Bearer ${null != (i = null == (a = T.default.expoConfig) || null == (u = a.extra) ? void 0 : u.apiToken) ? i : "fortress-hub-api-token"}`,
+        };
+      function E() {
+        return (E = (0, f.default)(function* () {
+          var e = yield fetch(`${B}/receipts`, { headers: D });
+          if (!e.ok) throw new Error("Unable to load receipts");
+          return e.json();
+        })).apply(this, arguments);
+      }
+      function R() {
+        return (R = (0, f.default)(function* (e) {
+          var t = yield fetch(`${B}/receipts`, {
+            method: "POST",
+            headers: k({ "Content-Type": "application/json" }, D),
+            body: JSON.stringify(e),
+          });
+          if (!t.ok) throw new Error("Unable to save receipt");
+          return t.json();
+        })).apply(this, arguments);
+      }
+      function A() {
+        return (A = (0, f.default)(function* (e, t) {
+          var r = yield fetch(`${B}/receipts/${e}`, {
+            method: "PUT",
+            headers: k({ "Content-Type": "application/json" }, D),
+            body: JSON.stringify(t),
+          });
+          if (!r.ok) throw new Error("Unable to update receipt");
+          return r.json();
+        })).apply(this, arguments);
+      }
+      function M() {
+        return (M = (0, f.default)(function* (e) {
+          if (
+            !(yield fetch(`${B}/receipts/${e}`, {
+              method: "DELETE",
+              headers: D,
+            })).ok
+          )
+            throw new Error("Unable to delete receipt");
+        })).apply(this, arguments);
+      }
+      var $ = m.default.create({
+        safeArea: { flex: 1, backgroundColor: "#f7f7fb" },
+        container: { padding: 16, gap: 16 },
+        title: { fontSize: 28, fontWeight: "700", marginBottom: 4 },
+        subtitle: { fontSize: 16, color: "#555" },
+        card: {
+          backgroundColor: "#fff",
+          borderRadius: 16,
+          padding: 16,
+          shadowColor: "#000",
+          shadowOpacity: 0.08,
+          shadowRadius: 16,
+          elevation: 4,
+        },
+        sectionHeader: {
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 12,
+        },
+        sectionTitle: { fontSize: 18, fontWeight: "700" },
+        input: {
+          borderWidth: 1,
+          borderColor: "#ddd",
+          borderRadius: 12,
+          padding: 12,
+          marginBottom: 12,
+        },
+        textArea: { minHeight: 86, textAlignVertical: "top" },
+        buttonRow: {
+          flexDirection: "row",
+          gap: 12,
+          justifyContent: "space-between",
+        },
+        listItem: {
+          padding: 12,
+          borderBottomWidth: 1,
+          borderBottomColor: "#eee",
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        },
+        listItemText: { flex: 1, marginRight: 12 },
+        itemVendor: { fontSize: 16, fontWeight: "700" },
+        itemMeta: { color: "#666", marginBottom: 4 },
+        listButtons: { flexDirection: "row", gap: 8 },
+        actionButton: {
+          paddingVertical: 6,
+          paddingHorizontal: 10,
+          borderRadius: 10,
+          backgroundColor: "#1f8ef1",
+        },
+        deleteButton: { backgroundColor: "#e63946" },
+        actionText: { color: "#fff", fontWeight: "700" },
+        emptyText: { padding: 12, color: "#666" },
+      });
+      const z = function () {
+        var e = (0, p.useState)([]),
+          t = (0, c.default)(e, 2),
+          r = t[0],
+          n = t[1],
+          o = (0, p.useState)(""),
+          l = (0, c.default)(o, 2),
+          i = l[0],
+          a = l[1],
+          u = (0, p.useState)(""),
+          s = (0, c.default)(u, 2),
+          m = s[0],
+          T = s[1],
+          P = (0, p.useState)(""),
+          k = (0, c.default)(P, 2),
+          B = k[0],
+          D = k[1],
+          z = (0, p.useState)("Supplies"),
+          I = (0, c.default)(z, 2),
+          U = I[0],
+          V = I[1],
+          W = (0, p.useState)(""),
+          H = (0, c.default)(W, 2),
+          N = H[0],
+          F = H[1],
+          Y = (0, p.useState)(!0),
+          _ = (0, c.default)(Y, 2),
+          L = _[0],
+          J = _[1],
+          q = (0, p.useState)(!1),
+          G = (0, c.default)(q, 2),
+          K = G[0],
+          Q = G[1],
+          X = (0, p.useState)(null),
+          Z = (0, c.default)(X, 2),
+          ee = Z[0],
+          te = Z[1];
+        (0, p.useEffect)(function () {
+          ne();
+        }, []);
+        var re = (0, p.useMemo)(
+          function () {
+            return parseFloat(m) || 0;
+          },
+          [m],
+        );
+        function ne() {
+          return oe.apply(this, arguments);
+        }
+        function oe() {
+          return (
+            (oe = (0, f.default)(function* () {
+              J(!0);
+              try {
+                var e = yield (function () {
+                  return E.apply(this, arguments);
+                })();
+                n(e);
+              } catch (t) {
+                y.default.alert("Load error", String(t));
+              } finally {
+                J(!1);
+              }
+            })),
+            oe.apply(this, arguments)
+          );
+        }
+        function le() {
+          return (
+            (le = (0, f.default)(function* () {
+              if (i && m && B) {
+                Q(!0);
+                try {
+                  var e = {
+                      vendor: i,
+                      amount: re,
+                      currency: "USD",
+                      date: B,
+                      category: U,
+                      notes: N || void 0,
+                    },
+                    t = ee
+                      ? yield (function (e, t) {
+                          return A.apply(this, arguments);
+                        })(ee, e)
+                      : yield (function (e) {
+                          return R.apply(this, arguments);
+                        })(e);
+                  (n(function (e) {
+                    return ee
+                      ? e.map(function (e) {
+                          return e.id === t.id ? t : e;
+                        })
+                      : [t].concat((0, d.default)(e));
+                  }),
+                    a(""),
+                    T(""),
+                    D(""),
+                    V("Supplies"),
+                    F(""),
+                    te(null));
+                } catch (r) {
+                  y.default.alert("Save error", String(r));
+                } finally {
+                  Q(!1);
+                }
+              } else
+                y.default.alert(
+                  "Validation",
+                  "Vendor, amount, and date are required.",
+                );
+            })),
+            le.apply(this, arguments)
+          );
+        }
+        function ie() {
+          return (
+            (ie = (0, f.default)(function* (e) {
+              try {
+                (yield (function (e) {
+                  return M.apply(this, arguments);
+                })(e),
+                  n(function (t) {
+                    return t.filter(function (t) {
+                      return t.id !== e;
+                    });
+                  }));
+              } catch (t) {
+                y.default.alert("Delete error", String(t));
+              }
+            })),
+            ie.apply(this, arguments)
+          );
+        }
+        return (0, C.jsx)(x.default, {
+          style: $.safeArea,
+          children: (0, C.jsxs)(j.default, {
+            contentContainerStyle: $.container,
+            keyboardShouldPersistTaps: "handled",
+            children: [
+              (0, C.jsx)(v.default, {
+                style: $.title,
+                children: "The Fortress Hub Mobile",
+              }),
+              (0, C.jsx)(v.default, {
+                style: $.subtitle,
+                children: "Secure receipt tracking with backend persistence.",
+              }),
+              (0, C.jsxs)(S.default, {
+                style: $.card,
+                children: [
+                  (0, C.jsx)(v.default, {
+                    style: $.sectionTitle,
+                    children: ee ? "Edit Receipt" : "New Receipt",
+                  }),
+                  (0, C.jsx)(w.default, {
+                    style: $.input,
+                    placeholder: "Vendor",
+                    value: i,
+                    onChangeText: a,
+                  }),
+                  (0, C.jsx)(w.default, {
+                    style: $.input,
+                    placeholder: "Amount",
+                    keyboardType: "decimal-pad",
+                    value: m,
+                    onChangeText: T,
+                  }),
+                  (0, C.jsx)(w.default, {
+                    style: $.input,
+                    placeholder: "Date (YYYY-MM-DD)",
+                    value: B,
+                    onChangeText: D,
+                  }),
+                  (0, C.jsx)(w.default, {
+                    style: $.input,
+                    placeholder: "Category",
+                    value: U,
+                    onChangeText: V,
+                  }),
+                  (0, C.jsx)(w.default, {
+                    style: [$.input, $.textArea],
+                    placeholder: "Notes",
+                    value: N,
+                    onChangeText: F,
+                    multiline: !0,
+                  }),
+                  (0, C.jsxs)(S.default, {
+                    style: $.buttonRow,
+                    children: [
+                      (0, C.jsx)(b.default, {
+                        title: ee ? "Update" : "Save",
+                        onPress: function () {
+                          return le.apply(this, arguments);
+                        },
+                        disabled: K,
+                      }),
+                      ee
+                        ? (0, C.jsx)(b.default, {
+                            title: "Cancel",
+                            onPress: function () {
+                              return te(null);
+                            },
+                            color: "#888",
+                          })
+                        : null,
+                    ],
+                  }),
+                ],
+              }),
+              (0, C.jsxs)(S.default, {
+                style: $.card,
+                children: [
+                  (0, C.jsxs)(S.default, {
+                    style: $.sectionHeader,
+                    children: [
+                      (0, C.jsx)(v.default, {
+                        style: $.sectionTitle,
+                        children: "Receipts",
+                      }),
+                      (0, C.jsx)(b.default, { title: "Refresh", onPress: ne }),
+                    ],
+                  }),
+                  L
+                    ? (0, C.jsx)(h.default, { size: "large" })
+                    : (0, C.jsx)(g.default, {
+                        data: r,
+                        keyExtractor: function (e) {
+                          return e.id;
+                        },
+                        renderItem: function (e) {
+                          var t = e.item;
+                          return (0, C.jsxs)(S.default, {
+                            style: $.listItem,
+                            children: [
+                              (0, C.jsxs)(S.default, {
+                                style: $.listItemText,
+                                children: [
+                                  (0, C.jsx)(v.default, {
+                                    style: $.itemVendor,
+                                    children: t.vendor,
+                                  }),
+                                  (0, C.jsxs)(v.default, {
+                                    style: $.itemMeta,
+                                    children: [t.date, " \u2022 ", t.category],
+                                  }),
+                                  (0, C.jsxs)(v.default, {
+                                    children: ["$", t.amount.toFixed(2)],
+                                  }),
+                                ],
+                              }),
+                              (0, C.jsxs)(S.default, {
+                                style: $.listButtons,
+                                children: [
+                                  (0, C.jsx)(O.default, {
+                                    onPress: function () {
+                                      return (function (e) {
+                                        var t;
+                                        (te(e.id),
+                                          a(e.vendor),
+                                          T(e.amount.toString()),
+                                          D(e.date),
+                                          V(e.category),
+                                          F(null != (t = e.notes) ? t : ""));
+                                      })(t);
+                                    },
+                                    style: $.actionButton,
+                                    children: (0, C.jsx)(v.default, {
+                                      style: $.actionText,
+                                      children: "Edit",
+                                    }),
+                                  }),
+                                  (0, C.jsx)(O.default, {
+                                    onPress: function () {
+                                      return (function (e) {
+                                        return ie.apply(this, arguments);
+                                      })(t.id);
+                                    },
+                                    style: [$.actionButton, $.deleteButton],
+                                    children: (0, C.jsx)(v.default, {
+                                      style: $.actionText,
+                                      children: "Delete",
+                                    }),
+                                  }),
+                                ],
+                              }),
+                            ],
+                          });
+                        },
+                        ListEmptyComponent: (0, C.jsx)(v.default, {
+                          style: $.emptyText,
+                          children: "No receipts available.",
+                        }),
+                      }),
+                ],
+              }),
+            ],
+          }),
+        });
+      };
+    },
+  };
+  const t = {};
+  function r(n) {
+    const o = t[n];
+    if (void 0 !== o) return o.exports;
+    const l = (t[n] = { exports: {} });
+    return (e[n].call(l.exports, l, l.exports, r), l.exports);
+  }
+  ((r.m = e),
+    (() => {
+      const e = [];
+      r.O = (t, n, o, l) => {
+        if (n) {
+          l = l || 0;
+          for (var i = e.length; i > 0 && e[i - 1][2] > l; i--) e[i] = e[i - 1];
+          return void (e[i] = [n, o, l]);
+        }
+        let a = 1 / 0;
+        for (i = 0; i < e.length; i++) {
+          let [n, o, l] = e[i],
+            s = !0;
+          for (var u = 0; u < n.length; u++)
+            (!1 & l || a >= l) && Object.keys(r.O).every((e) => r.O[e](n[u]))
+              ? n.splice(u--, 1)
+              : ((s = !1), l < a && (a = l));
+          if (s) {
+            e.splice(i--, 1);
+            const r = o();
+            void 0 !== r && (t = r);
+          }
+        }
+        return t;
+      };
+    })(),
+    (r.n = (e) => {
+      const t = e && e.__esModule ? () => e.default : () => e;
+      return (r.d(t, { a: t }), t);
+    }),
+    (r.d = (e, t) => {
+      if (Array.isArray(t))
+        for (var n = 0; n < t.length;) {
+          var o = t[n++],
+            l = t[n++];
+          r.o(e, o)
+            ? 0 === l && n++
+            : 0 === l
+              ? Object.defineProperty(e, o, { enumerable: !0, value: t[n++] })
+              : Object.defineProperty(e, o, { enumerable: !0, get: l });
+        }
+      else
+        for (var o in t)
+          r.o(t, o) &&
+            !r.o(e, o) &&
+            Object.defineProperty(e, o, { enumerable: !0, get: t[o] });
+    }),
+    (r.g = (function () {
+      if ("object" === typeof globalThis) return globalThis;
+      try {
+        return this || new Function("return this")();
+      } catch (e) {
+        if ("object" === typeof window) return window;
+      }
+    })()),
+    (r.o = (e, t) => Object.prototype.hasOwnProperty.call(e, t)),
+    (r.r = (e) => {
+      (Symbol.toStringTag &&
+        Object.defineProperty(e, Symbol.toStringTag, { value: "Module" }),
+        Object.defineProperty(e, "__esModule", { value: !0 }));
+    }),
+    (r.cjs = (e) => {
+      const t = { exports: {} };
+      return (e.call(t.exports, t, t.exports), t.exports);
+    }),
+    (() => {
+      const e = { 792: 0 };
+      r.O.j = (t) => 0 === e[t];
+      const t = (t, n) => {
+          let [o, l, i] = n;
+          var a,
+            u,
+            s = 0;
+          if (o.some((t) => 0 !== e[t])) {
+            for (a in l) r.o(l, a) && (r.m[a] = l[a]);
+            if (i) var d = i(r);
+          }
+          for (t && t(n); s < o.length; s++)
+            ((u = o[s]), r.o(e, u) && e[u] && e[u][0](), (e[u] = 0));
+          return r.O(d);
+        },
+        n = (self.webpackChunkweb = self.webpackChunkweb || []);
+      (n.forEach(t.bind(null, 0)), (n.push = t.bind(null, n.push.bind(n))));
+    })());
+  let n = r.O(void 0, [578], () => r(1826));
+  n = r.O(n);
+})();
 //# sourceMappingURL=main.fd21b96a.js.map
