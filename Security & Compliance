@@ -1,0 +1,42 @@
+// middleware/security.js
+const security = {
+  // GDPR Compliance
+  gdpr: {
+    dataRetention: 365, // days
+    anonymizeAfter: 90, // days
+    exportData: async (userId) => {
+      const data = await getAllUserData(userId);
+      return encryptAndPackage(data);
+    },
+    deleteData: async (userId) => {
+      await softDeleteUser(userId);
+      await schedulePermanentDelete(userId, 30); // 30 day grace period
+    }
+  },
+  
+  // HIPAA (if handling health-related receipts)
+  hipaa: {
+    encryptAtRest: true,
+    auditLogging: true,
+    accessControls: true,
+    breachNotification: async (breach) => {
+      await notifyUsers(breach.affectedUsers);
+      await reportToAuthorities(breach);
+    }
+  },
+  
+  // PCI Compliance
+  pci: {
+    tokenizeCards: true,
+    noStorageOfCVV: true,
+    encryptionAES256: true,
+    quarterlyScan: true
+  },
+  
+  // Advanced Encryption
+  encryption: {
+    algorithm: 'aes-256-gcm',
+    keyRotationDays: 90,
+    backupKeys: 3
+  }
+};
