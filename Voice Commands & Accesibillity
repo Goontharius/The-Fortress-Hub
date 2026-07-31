@@ -1,0 +1,42 @@
+// voice/commands.js
+class VoiceAssistant {
+  constructor() {
+    this.recognition = new webkitSpeechRecognition();
+    this.recognition.continuous = true;
+    this.recognition.lang = 'en-US';
+    
+    this.commands = {
+      'capture receipt': () => this.openCamera(),
+      'show analytics': () => this.navigateTo('/analytics'),
+      'how much did I spend': () => this.getSpendingSummary(),
+      'upload receipt': () => this.triggerUpload(),
+      'generate report': () => this.generateReport(),
+      'what\'s my budget': () => this.getBudgetStatus(),
+      'search receipts': (query) => this.searchReceipts(query),
+      'export data': () => this.exportData(),
+      'help me': () => this.showHelp()
+    };
+  }
+  
+  // Accessibility features
+  accessibility = {
+    highContrast: true,
+    largeText: true,
+    screenReader: true,
+    keyboardShortcuts: true,
+    voiceOver: true,
+    colorblindFriendly: true
+  };
+}
+
+// Keyboard shortcuts
+const shortcuts = {
+  'Cmd+Shift+C': 'Capture Receipt',
+  'Cmd+Shift+A': 'Analytics',
+  'Cmd+Shift+B': 'Budget',
+  'Cmd+Shift+T': 'Tax Report',
+  'Cmd+Shift+S': 'Search',
+  'Cmd+Shift+E': 'Export',
+  'Cmd+Shift+?': 'Help',
+  'Esc': 'Close Modal'
+};
