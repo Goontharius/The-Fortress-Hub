@@ -1,0 +1,62 @@
+// reporting/suite.js
+class ReportGenerator {
+  // Tax-ready reports
+  async generateTaxReport(userId, year) {
+    const receipts = await getReceiptsByYear(userId, year);
+    
+    return {
+      scheduleC: this.generateScheduleC(receipts),
+      scheduleE: this.generateScheduleE(receipts),
+      form8829: this.generateForm8829(receipts),
+      estimatedTaxes: this.calculateEstimatedTax(receipts),
+      deductions: this.calculateDeductions(receipts),
+      auditTrail: this.generateAuditTrail(receipts)
+    };
+  }
+  
+  // Business reports
+  async generateBusinessReport(userId, period) {
+    return {
+      profitLoss: this.calculatePnL(userId, period),
+      cashFlow: this.calculateCashFlow(userId, period),
+      balanceSheet: this.generateBalanceSheet(userId),
+      kpis: {
+        grossMargin: this.calculateGrossMargin(userId),
+        operatingMargin: this.calculateOperatingMargin(userId),
+        netProfit: this.calculateNetProfit(userId),
+        roi: this.calculateROI(userId)
+      },
+      trends: this.analyzeTrends(userId, period)
+    };
+  }
+  
+  // Custom reports
+  async generateCustomReport(config) {
+    const query = this.buildQuery(config);
+    const data = await this.executeQuery(query);
+    
+    // Export in multiple formats
+    return {
+      pdf: await this.generatePDF(data, config.formatting),
+      excel: await this.generateExcel(data),
+      csv: this.generateCSV(data),
+      json: data,
+      chart: await this.generateChart(data, config.chartType)
+    };
+  }
+  
+  // Scheduled reports
+  setupScheduledReports() {
+    this.scheduler.add('0 0 1 * *', async () => {
+      await this.generateMonthlyReport();
+    });
+    
+    this.scheduler.add('0 0 1 1 *', async () => {
+      await this.generateAnnualReport();
+    });
+    
+    this.scheduler.add('0 12 * * 5', async () => {
+      await this.generateWeeklyReport();
+    });
+  }
+}
