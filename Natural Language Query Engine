@@ -1,0 +1,68 @@
+// nlp/query.js
+class NaturalLanguageQuery {
+  constructor() {
+    this.nlp = require('compromise');
+    this.intents = {
+      'spending': ['how much', 'total', 'spending', 'spent'],
+      'category': ['on', 'for', 'category', 'type'],
+      'time': ['today', 'this month', 'last year', 'between'],
+      'compare': ['versus', 'vs', 'compared to'],
+      'forecast': ['predict', 'will', 'future', 'estimate']
+    };
+  }
+  
+  async parseQuery(query, userId) {
+    const doc = this.nlp(query);
+    
+    // Extract intent
+    const intent = this.extractIntent(doc);
+    
+    // Extract entities
+    const entities = {
+      category: this.extractCategory(doc),
+      dateRange: this.extractDateRange(doc),
+      amount: this.extractAmount(doc),
+      vendor: this.extractVendor(doc)
+    };
+    
+    // Generate SQL/Query
+    const sqlQuery = await this.generateQuery(intent, entities, userId);
+    
+    // Execute and return results
+    const results = await this.executeQuery(sqlQuery);
+    
+    // Generate natural language response
+    return {
+      answer: this.generateResponse(results, intent),
+      data: results,
+      visualization: this.getVisualization(intent, results)
+    };
+  }
+  
+  generateResponse(results, intent) {
+    switch(intent) {
+      case 'spending':
+        return `You spent $${results.total} across ${results.count} receipts.`;
+      case 'category':
+        return `Your top category is ${results.topCategory} at $${results.total}.`;
+      case 'forecast':
+        return `Based on trends, you'll spend ~$${results.forecast} next month.`;
+      default:
+        return `Here's what I found...`;
+    }
+  }
+}
+
+// Example queries
+const exampleQueries = [
+  "How much did I spend at Home Depot this month?",
+  "Show me my top 5 expense categories",
+  "Compare my spending this year to last year",
+  "Predict my spending for the next 3 months",
+  "What's my average receipt amount?",
+  "Show me all receipts over $500",
+  "What vendors do I use most?",
+  "When did I spend the most?",
+  "Alert me if I'm overspending in supplies",
+  "Generate my tax report"
+];
