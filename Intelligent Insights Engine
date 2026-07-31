@@ -1,0 +1,218 @@
+// backend/services/insights.js
+class InsightsEngine {
+  constructor() {
+    this.insightTypes = {
+      SPENDING: 'spending',
+      BEHAVIOR: 'behavior',
+      OPPORTUNITY: 'opportunity',
+      WARNING: 'warning',
+      TREND: 'trend'
+    };
+  }
+
+  async generateComprehensiveInsights(userId) {
+    const data = await this.gatherData(userId);
+    
+    const insights = {
+      summary: this.generateSummary(data),
+      trends: this.analyzeTrends(data),
+      patterns: this.detectPatterns(data),
+      anomalies: this.findAnomalies(data),
+      recommendations: this.generateRecommendations(data),
+      predictions: this.predictFuture(data),
+      benchmarks: this.compareToBenchmarks(data),
+      opportunities: this.identifyOpportunities(data)
+    };
+
+    return insights;
+  }
+
+  generateSummary(data) {
+    return {
+      totalSpent: data.totalSpent,
+      receiptCount: data.receiptCount,
+      averageSpend: data.averageSpend,
+      topCategory: data.topCategory,
+      topVendor: data.topVendor,
+      savingsPotential: data.savingsPotential,
+      overallHealth: this.calculateHealthScore(data)
+    };
+  }
+
+  analyzeTrends(data) {
+    const trends = {
+      monthly: this.calculateMonthlyTrend(data),
+      quarterly: this.calculateQuarterlyTrend(data),
+      yearly: this.calculateYearlyTrend(data),
+      seasonality: this.detectSeasonality(data),
+      growthRate: this.calculateGrowthRate(data),
+      volatility: this.calculateVolatility(data)
+    };
+
+    // Add trend insights
+    trends.insights = [];
+    if (trends.growthRate > 10) {
+      trends.insights.push('📈 Your spending is growing faster than average');
+    }
+    if (trends.volatility > 30) {
+      trends.insights.push('📊 Your spending has high volatility');
+    }
+
+    return trends;
+  }
+
+  detectPatterns(data) {
+    const patterns = [];
+
+    // Recurring spending patterns
+    const recurring = this.findRecurringPatterns(data);
+    if (recurring.length > 0) {
+      patterns.push({
+        type: 'recurring',
+        title: 'Recurring Spending Detected',
+        description: `You have ${recurring.length} recurring expenses`,
+        items: recurring.slice(0, 5)
+      });
+    }
+
+    // Weekend vs weekday patterns
+    const weekendPattern = this.compareWeekendWeekday(data);
+    patterns.push({
+      type: 'weekend',
+      title: 'Weekend vs Weekday Spending',
+      description: `You spend ${weekendPattern.difference}% more on weekends`,
+      details: weekendPattern
+    });
+
+    // End of month patterns
+    const eomPattern = this.analyzeEndOfMonth(data);
+    patterns.push({
+      type: 'eom',
+      title: 'End of Month Spending',
+      description: `You spend ${eomPattern.percentage}% of your monthly budget in the last week`,
+      details: eomPattern
+    });
+
+    return patterns;
+  }
+
+  findAnomalies(data) {
+    const anomalies = [];
+    const stats = this.calculateStats(data.spending);
+
+    for (const item of data.spending) {
+      const zScore = (item.amount - stats.mean) / stats.stdDev;
+      
+      if (Math.abs(zScore) > 2.5) {
+        anomalies.push({
+          date: item.date,
+          vendor: item.vendor,
+          amount: item.amount,
+          category: item.category,
+          severity: Math.abs(zScore) > 3.5 ? 'high' : 'medium',
+          reason: zScore > 0 ? 'Unusually high spend' : 'Unusually low spend',
+          zScore
+        });
+      }
+    }
+
+    return anomalies;
+  }
+
+  generateRecommendations(data) {
+    const recommendations = [];
+
+    // Spending reduction opportunities
+    const topCategories = this.getTopCategories(data);
+    for (const category of topCategories) {
+      if (category.percentage > 30) {
+        recommendations.push({
+          type: 'reduction',
+          title: `Reduce ${category.name} spending`,
+          description: `${category.name} accounts for ${category.percentage}% of your spending`,
+          potentialSavings: category.total * 0.15,
+          action: `Look for alternatives to ${category.name}`,
+          priority: 'high'
+        });
+      }
+    }
+
+    // Vendor optimization
+    const vendors = this.analyzeVendors(data);
+    for (const vendor of vendors) {
+      if (vendor.count > 10 && vendor.averagePrice > this.getMarketAverage(vendor.name)) {
+        recommendations.push({
+          type: 'vendor',
+          title: `Consider ${vendor.name} alternatives`,
+          description: `You average $${vendor.averagePrice} at ${vendor.name}`,
+          potentialSavings: vendor.total * 0.1,
+          action: `Compare prices at competing vendors`,
+          priority: 'medium'
+        });
+      }
+    }
+
+    // Tax optimization
+    const taxDeductions = this.findTaxDeductions(data);
+    if (taxDeductions.length > 0) {
+      recommendations.push({
+        type: 'tax',
+        title: 'Potential Tax Deductions Found',
+        description: `You have ${taxDeductions.length} deductible expenses`,
+        potentialSavings: taxDeductions.reduce((sum, d) => sum + d.amount, 0) * 0.25,
+        action: 'Consult with tax professional about these deductions',
+        priority: 'high'
+      });
+    }
+
+    return recommendations;
+  }
+
+  predictFuture(data) {
+    const predictions = {
+      nextMonth: this.predictNextMonth(data),
+      nextQuarter: this.predictNextQuarter(data),
+      nextYear: this.predictNextYear(data),
+      confidence: 0.85
+    };
+
+    // Add spending forecasts
+    predictions.forecast = this.generateForecast(data, 12);
+
+    return predictions;
+  }
+
+  identifyOpportunities(data) {
+    const opportunities = [];
+
+    // Bundle discounts
+    const vendors = this.analyzeVendors(data);
+    for (const vendor of vendors) {
+      if (vendor.frequency > 5 && vendor.amount > 1000) {
+        opportunities.push({
+          type: 'bundle',
+          title: `Bulk discount with ${vendor.name}`,
+          description: `You spend $${vendor.total} annually at ${vendor.name}`,
+          potentialSavings: vendor.total * 0.15,
+          action: `Ask ${vendor.name} about volume discounts`,
+          effort: 'low'
+        });
+      }
+    }
+
+    // Subscription consolidation
+    const subscriptions = this.findSubscriptions(data);
+    if (subscriptions.length > 3) {
+      opportunities.push({
+        type: 'subscription',
+        title: 'Subscription Optimization',
+        description: `You have ${subscriptions.length} recurring subscriptions`,
+        potentialSavings: subscriptions.reduce((sum, s) => sum + s.cost, 0) * 0.2,
+        action: 'Review and consolidate subscriptions',
+        effort: 'low'
+      });
+    }
+
+    return opportunities;
+  }
+}
