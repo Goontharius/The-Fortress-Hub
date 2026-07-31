@@ -1,0 +1,129 @@
+-- Enhanced database schema for historical storage
+
+-- Yearly archives table
+CREATE TABLE yearly_archives (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    year INTEGER NOT NULL,
+    archive_key VARCHAR(500) NOT NULL,
+    storage_tier VARCHAR(50) DEFAULT 'COLD',
+    metadata JSONB DEFAULT '{}',
+    receipt_count INTEGER DEFAULT 0,
+    total_spent DECIMAL(15,2) DEFAULT 0,
+    vendor_count INTEGER DEFAULT 0,
+    category_count INTEGER DEFAULT 0,
+    earliest_date DATE,
+    latest_date DATE,
+    compressed_size BIGINT,
+    encryption_status VARCHAR(50) DEFAULT 'encrypted',
+    checksum VARCHAR(64),
+    created_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(user_id, year)
+);
+
+-- Monthly summaries (kept in warm storage for faster access)
+CREATE TABLE monthly_historical_summaries (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    year INTEGER NOT NULL,
+    month INTEGER NOT NULL,
+    receipt_count INTEGER DEFAULT 0,
+    total_spent DECIMAL(15,2) DEFAULT 0,
+    top_vendors JSONB DEFAULT '[]',
+    top_categories JSONB DEFAULT '[]',
+    daily_breakdown JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(user_id, year, month)
+);
+
+-- Historical search index
+CREATE TABLE historical_search_index (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    archive_id UUID REFERENCES yearly_archives(id) ON DELETE CASCADE,
+    receipt_id INTEGER,
+    search_terms TSVECTOR,
+    vendor VARCHAR(255),
+    category VARCHAR(100),
+    date DATE,
+    total DECIMAL(15,2),
+    tags TEXT[],
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- View for historical trends
+CREATE VIEW v_historical_trends AS
+SELECT 
+    user_id,
+    year,
+    month,
+    receipt_count,
+    total_spent,
+    LAG(total_spent, 1) OVER (PARTITION BY user_id ORDER BY year, month) as prev_month_spent,
+    LAG(total_spent, 12) OVER (PARTITION BY user_id ORDER BY year, month) as prev_year_spent,
+    AVG(total_spent) OVER (PARTITION BY user_id ORDER BY year, month ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) as moving_avg_12m
+FROM monthly_historical_summaries;
+
+-- Function to generate yearly archive
+CREATE OR REPLACE FUNCTION generate_yearly_archive(user_uuid UUID, target_year INTEGER)
+RETURNS UUID AS $$
+DECLARE
+    archive_id UUID;
+BEGIN
+    -- Create archive record
+    INSERT INTO yearly_archives (
+        user_id, year, metadata, receipt_count, total_spent,
+        vendor_count, category_count, earliest_date, latest_date,
+        created_at
+    )
+    SELECT 
+        user_uuid,
+        target_year,
+        jsonb_build_object(
+            'generated_at', NOW(),
+            'version', '1.0',
+            'status', 'pending'
+        ),
+        COUNT(*),
+        COALESCE(SUM(total), 0),
+        COUNT(DISTINCT vendor),
+        COUNT(DISTINCT category),
+        MIN(date),
+        MAX(date),
+        NOW()
+    FROM receipts
+    WHERE user_id = user_uuid
+        AND EXTRACT(YEAR FROM date) = target_year
+        AND status = 'processed'
+    RETURNING id INTO archive_id;
+
+    -- Generate monthly summaries
+    INSERT INTO monthly_historical_summaries (user_id, year, month, receipt_count, total_spent)
+    SELECT 
+        user_uuid,
+        target_year,
+        EXTRACT(MONTH FROM date)::INTEGER,
+        COUNT(*),
+        COALESCE(SUM(total), 0)
+    FROM receipts
+    WHERE user_id = user_uuid
+        AND EXTRACT(YEAR FROM date) = target_year
+        AND status = 'processed'
+    GROUP BY user_id, EXTRACT(MONTH FROM date)
+    ON CONFLICT (user_id, year, month) DO UPDATE
+    SET 
+        receipt_count = EXCLUDED.receipt_count,
+        total_spent = EXCLUDED.total_spent,
+        updated_at = NOW();
+
+    -- Update archive status
+    UPDATE yearly_archives 
+    SET 
+        metadata = jsonb_set(metadata, '{status}', '"complete"'),
+        created_at = NOW()
+    WHERE id = archive_id;
+
+    RETURN archive_id;
+END;
+$$ LANGUAGE plpgsql;
