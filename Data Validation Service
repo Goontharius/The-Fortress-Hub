@@ -1,0 +1,70 @@
+// services/validation.js
+class DataValidationService {
+  constructor() {
+    this.rules = {
+      vendor: {
+        minLength: 2,
+        maxLength: 255,
+        pattern: /^[a-zA-Z0-9\s\-'.&,]+$/,
+        required: true
+      },
+      total: {
+        min: 0,
+        max: 1000000,
+        precision: 2,
+        required: true
+      },
+      items: {
+        maxItems: 100,
+        required: false,
+        validateItem: (item) => ({
+          name: { minLength: 1, maxLength: 255 },
+          price: { min: 0, max: 100000 },
+          quantity: { min: 1, max: 1000 }
+        })
+      }
+    };
+  }
+
+  validateReceipt(data) {
+    const errors = [];
+    
+    // Validate vendor
+    if (!data.vendor && this.rules.vendor.required) {
+      errors.push('Vendor is required');
+    }
+    
+    // Validate total
+    if (data.total < this.rules.total.min) {
+      errors.push(`Total must be at least ${this.rules.total.min}`);
+    }
+    
+    // Validate items
+    if (data.items && data.items.length > this.rules.items.maxItems) {
+      errors.push(`Too many items (max ${this.rules.items.maxItems})`);
+    }
+    
+    // Business logic validation
+    if (data.total && data.tax && data.tax > data.total) {
+      errors.push('Tax cannot exceed total');
+    }
+    
+    // Duplicate check
+    if (data.vendor && data.date) {
+      // Check for potential duplicates in last 7 days
+      const potentialDuplicate = await this.checkDuplicate(data);
+      if (potentialDuplicate) {
+        errors.push({
+          type: 'duplicate',
+          message: 'Similar receipt found in last 7 days',
+          details: potentialDuplicate
+        });
+      }
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+}
