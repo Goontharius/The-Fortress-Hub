@@ -1,0 +1,112 @@
+// backend/routes/historical.js
+const router = require('express').Router();
+const authMiddleware = require('../middleware/auth');
+const HistoricalArchiveService = require('../services/historicalArchive');
+const HistoricalSearchService = require('../services/historicalSearch');
+
+const archiveService = new HistoricalArchiveService();
+const searchService = new HistoricalSearchService();
+
+// Get historical overview
+router.get('/:userId/overview', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const overview = await archiveService.getFullHistory(userId);
+    res.json(overview);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get historical data with filters
+router.get('/:userId/data', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const filters = req.query;
+    const data = await archiveService.getHistoricalData(userId, filters);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get year comparison
+router.get('/:userId/compare', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { years } = req.query;
+    const comparison = await archiveService.compareYears(
+      userId, 
+      years.split(',').map(Number)
+    );
+    res.json(comparison);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Search historical data
+router.get('/:userId/search', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const query = req.query;
+    const results = await searchService.searchHistorical(userId, query);
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Natural language search
+router.post('/:userId/natural-search', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { query } = req.body;
+    const results = await searchService.advancedSearch(userId, query);
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Generate historical report
+router.post('/:userId/report', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const options = req.body;
+    const report = await archiveService.generateHistoricalReport(userId, options);
+    res.json(report);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Export historical data
+router.get('/:userId/export', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { format, startYear, endYear } = req.query;
+    
+    const report = await archiveService.generateHistoricalReport(userId, {
+      startYear: parseInt(startYear),
+      endYear: parseInt(endYear),
+      format
+    });
+
+    if (format === 'pdf') {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=historical-report-${startYear}-${endYear}.pdf`);
+      res.send(report);
+    } else if (format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=historical-report-${startYear}-${endYear}.csv`);
+      res.send(report);
+    } else {
+      res.json(report);
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+module.exports = router;
