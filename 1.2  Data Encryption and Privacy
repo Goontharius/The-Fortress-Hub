@@ -1,0 +1,169 @@
+// backend/security/encryption.js
+const crypto = require('crypto');
+const { promisify } = require('util');
+
+class EncryptionService {
+  constructor() {
+    this.algorithm = 'aes-256-gcm';
+    this.keyDerivation = {
+      iterations: 100000,
+      keyLength: 32,
+      digest: 'sha256'
+    };
+    this.masterKey = Buffer.from(process.env.MASTER_ENCRYPTION_KEY, 'hex');
+  }
+
+  // 1. Data Encryption at Rest
+  async encrypt(data, context) {
+    // Generate unique IV for each encryption
+    const iv = crypto.randomBytes(12);
+    
+    // Derive key using HKDF
+    const key = this.deriveKey(context);
+    
+    const cipher = crypto.createCipheriv(this.algorithm, key, iv);
+    
+    let encrypted = cipher.update(data, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    
+    const authTag = cipher.getAuthTag();
+    
+    return {
+      encrypted: encrypted,
+      iv: iv.toString('hex'),
+      authTag: authTag.toString('hex'),
+      algorithm: this.algorithm,
+      context: context
+    };
+  }
+
+  async decrypt(encryptedData) {
+    const { encrypted, iv, authTag, algorithm, context } = encryptedData;
+    
+    const key = this.deriveKey(context);
+    const decipher = crypto.createDecipheriv(algorithm, key, Buffer.from(iv, 'hex'));
+    decipher.setAuthTag(Buffer.from(authTag, 'hex'));
+    
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    
+    return decrypted;
+  }
+
+  deriveKey(context) {
+    // HKDF key derivation with context binding
+    const salt = crypto.createHash('sha256')
+      .update(context)
+      .update(process.env.ENCRYPTION_SALT)
+      .digest();
+      
+    return crypto.pbkdf2Sync(
+      this.masterKey,
+      salt,
+      this.keyDerivation.iterations,
+      this.keyDerivation.keyLength,
+      this.keyDerivation.digest
+    );
+  }
+
+  // 2. Field-Level Encryption for sensitive data
+  encryptField(data, fieldName, userId) {
+    const context = `${userId}:${fieldName}`;
+    return this.encrypt(data, context);
+  }
+
+  // 3. Tokenization for PII
+  tokenize(data) {
+    // Generate deterministic token
+    const hash = crypto.createHash('sha256');
+    hash.update(data);
+    hash.update(process.env.TOKENIZATION_SALT);
+    return hash.digest('hex').substring(0, 16);
+  }
+
+  // 4. Secure Data Masking
+  maskData(data, type) {
+    switch (type) {
+      case 'email':
+        return data.replace(/(.{2}).+(@.+)/, '$1***$2');
+      case 'phone':
+        return data.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+      case 'creditCard':
+        return data.replace(/\d{4}(?=\d{4})/, '****');
+      case 'ssn':
+        return data.replace(/(\d{3})\d{2}(\d{4})/, '$1**$2');
+      default:
+        return data.substring(0, 2) + '*'.repeat(data.length - 4) + data.substring(data.length - 2);
+    }
+  }
+
+  // 5. Secure Key Rotation
+  async rotateKeys() {
+    const newMasterKey = crypto.randomBytes(32);
+    const oldMasterKey = this.masterKey;
+    
+    // Store old key for decryption during transition period
+    this.previousKeys = [oldMasterKey];
+    this.masterKey = newMasterKey;
+    
+    // Schedule complete rotation
+    setTimeout(() => {
+      this.reencryptAllData(this.masterKey);
+    }, 7 * 24 * 60 * 60 * 1000); // After 7 days
+  }
+
+  // 6. Digital Signatures for Integrity
+  sign(data) {
+    const hmac = crypto.createHmac('sha512', this.masterKey);
+    hmac.update(JSON.stringify(data));
+    return hmac.digest('hex');
+  }
+
+  verify(data, signature) {
+    const computed = this.sign(data);
+    return crypto.timingSafeEqual(
+      Buffer.from(computed),
+      Buffer.from(signature)
+    );
+  }
+}
+
+// Database encryption layer
+class EncryptedRepository {
+  constructor(model) {
+    this.model = model;
+    this.encryption = new EncryptionService();
+    this.encryptedFields = ['email', 'phone', 'address', 'taxId'];
+  }
+
+  async create(data) {
+    const encrypted = { ...data };
+    
+    for (const field of this.encryptedFields) {
+      if (encrypted[field]) {
+        encrypted[field] = await this.encryption.encryptField(
+          encrypted[field],
+          field,
+          encrypted.userId
+        );
+      }
+    }
+    
+    return await this.model.create(encrypted);
+  }
+
+  async findDecrypted(query) {
+    const result = await this.model.findOne(query);
+    if (!result) return null;
+    
+    const decrypted = { ...result.toObject() };
+    
+    for (const field of this.encryptedFields) {
+      if (decrypted[field]) {
+        decrypted[field] = await this.encryption.decrypt(decrypted[field]);
+      }
+    }
+    
+    return decrypted;
+  }
+}
