@@ -1,0 +1,9 @@
+# Install dependencies
+npm install
+
+# Set up environment
+cp .env.example .env
+# Edit .env with your credentials
+
+# Start development server
+npm run dev
