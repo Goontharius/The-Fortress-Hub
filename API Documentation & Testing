@@ -1,0 +1,80 @@
+// ❌ CURRENT ISSUE: No API documentation
+// ✅ FIX: Swagger/OpenAPI documentation
+
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
+
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'The Fortress Hub API',
+      version: '1.0.0',
+      description: 'Receipt management and analytics API',
+      contact: {
+        name: 'Support',
+        email: 'support@fortresshub.com'
+      }
+    },
+    servers: [
+      {
+        url: 'http://localhost:3000',
+        description: 'Development server'
+      }
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        }
+      }
+    },
+    security: [{
+      bearerAuth: []
+    }]
+  },
+  apis: ['./routes/*.js']
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Example endpoint documentation
+/**
+ * @swagger
+ * /api/upload:
+ *   post:
+ *     summary: Upload a receipt image
+ *     tags: [Receipts]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - receipt
+ *               - userId
+ *             properties:
+ *               receipt:
+ *                 type: string
+ *                 format: binary
+ *               userId:
+ *                 type: string
+ *                 format: uuid
+ *               category:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Receipt uploaded successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
