@@ -1,0 +1,23 @@
+// monetization/plans.js
+const pricingTiers = {
+  free: {
+    price: 0,
+    features: ['50 receipts/month', 'Basic analytics', 'Mobile app'],
+    limits: { receipts: 50, teamMembers: 1 }
+  },
+  pro: {
+    price: 19.99,
+    features: ['Unlimited receipts', 'AI Assistant', 'Advanced analytics', 'Team (up to 5)'],
+    limits: { receipts: -1, teamMembers: 5 }
+  },
+  business: {
+    price: 49.99,
+    features: ['Everything in Pro', 'Bank integration', 'Tax reports', 'Custom branding', 'API access'],
+    limits: { receipts: -1, teamMembers: 20 }
+  },
+  enterprise: {
+    price: 99.99,
+    features: ['Everything', 'Dedicated support', 'SLA', 'On-premise', 'Custom integrations'],
+    limits: { receipts: -1, teamMembers: -1 }
+  }
+};
