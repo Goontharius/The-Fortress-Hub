@@ -1,0 +1,219 @@
+// backend/compliance/regulatory.js
+class RegulatoryCompliance {
+  constructor() {
+    this.regulations = {
+      gdpr: {
+        active: true,
+        regions: ['EU', 'UK', 'EEA'],
+        requirements: [
+          'data_minimization',
+          'purpose_limitation',
+          'storage_limitation',
+          'integrity_confidentiality',
+          'accountability'
+        ]
+      },
+      ccpa: {
+        active: true,
+        regions: ['CA', 'USA'],
+        requirements: [
+          'right_to_know',
+          'right_to_delete',
+          'right_to_opt_out',
+          'non_discrimination'
+        ]
+      },
+      hipaa: {
+        active: process.env.ENABLE_HIPAA === 'true',
+        regions: ['USA'],
+        requirements: [
+          'privacy_rule',
+          'security_rule',
+          'breach_notification',
+          'enforcement_rule'
+        ]
+      },
+      pci: {
+        active: process.env.ENABLE_PCI === 'true',
+        regions: ['GLOBAL'],
+        requirements: [
+          'build_secure_network',
+          'protect_card_data',
+          'maintain_vulnerability_program',
+          'implement_access_control',
+          'monitor_networks',
+          'maintain_security_policy'
+        ]
+      }
+    };
+  }
+
+  // 1. Data Classification
+  classifyData(data) {
+    const classification = {
+      level: 'unclassified',
+      type: 'general',
+      sensitivity: 'low',
+      retentionDays: 365,
+      encryption: false
+    };
+
+    // Check for PII
+    if (this.containsPII(data)) {
+      classification.level = 'restricted';
+      classification.sensitivity = 'high';
+      classification.encryption = true;
+      classification.type = 'pii';
+      classification.retentionDays = 90;
+    }
+
+    // Check for PHI
+    if (this.containsPHI(data)) {
+      classification.level = 'confidential';
+      classification.sensitivity = 'critical';
+      classification.encryption = true;
+      classification.type = 'phi';
+      classification.retentionDays = 2555; // 7 years
+      classification.regulatory = ['HIPAA'];
+    }
+
+    // Check for PCI data
+    if (this.containsPCI(data)) {
+      classification.level = 'restricted';
+      classification.sensitivity = 'critical';
+      classification.encryption = true;
+      classification.type = 'pci';
+      classification.retentionDays = 90;
+      classification.regulatory = ['PCI-DSS'];
+    }
+
+    // Check for financial data
+    if (this.containsFinancial(data)) {
+      classification.level = 'restricted';
+      classification.sensitivity = 'high';
+      classification.encryption = true;
+      classification.type = 'financial';
+      classification.retentionDays = 1825; // 5 years
+      classification.regulatory = ['SOX', 'SEC'];
+    }
+
+    return classification;
+  }
+
+  // 2. Consent Management
+  manageConsent(userId, purpose) {
+    return {
+      getConsent: async () => {
+        return await db.query(
+          'SELECT * FROM consents WHERE user_id = $1 AND purpose = $2',
+          [userId, purpose]
+        );
+      },
+      grantConsent: async () => {
+        await db.query(
+          'INSERT INTO consents (user_id, purpose, granted_at, ip_address) VALUES ($1, $2, $3, $4)',
+          [userId, purpose, new Date().toISOString(), this.getCurrentIP()]
+        );
+      },
+      revokeConsent: async () => {
+        await db.query(
+          'UPDATE consents SET revoked = true, revoked_at = $1 WHERE user_id = $2 AND purpose = $3',
+          [new Date().toISOString(), userId, purpose]
+        );
+      },
+      checkConsent: async () => {
+        const result = await db.query(
+          'SELECT * FROM consents WHERE user_id = $1 AND purpose = $2 AND revoked = false',
+          [userId, purpose]
+        );
+        return result.rows.length > 0;
+      }
+    };
+  }
+
+  // 3. Data Retention Policy
+  retentionPolicy = {
+    'user_data': {
+      retention: 365, // days
+      action: 'anonymize',
+      schedule: 'daily'
+    },
+    'receipts': {
+      retention: 2555, // 7 years
+      action: 'archive',
+      schedule: 'monthly'
+    },
+    'audit_logs': {
+      retention: 1095, // 3 years
+      action: 'archive',
+      schedule: 'monthly'
+    },
+    'financial_records': {
+      retention: 1825, // 5 years
+      action: 'archive',
+      schedule: 'monthly'
+    },
+    'activity_logs': {
+      retention: 30, // 30 days
+      action: 'delete',
+      schedule: 'daily'
+    }
+  };
+
+  async enforceRetention() {
+    for (const [type, policy] of Object.entries(this.retentionPolicy)) {
+      await this.applyRetentionPolicy(type, policy);
+    }
+  }
+
+  async applyRetentionPolicy(type, policy) {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - policy.retention);
+    
+    switch (policy.action) {
+      case 'anonymize':
+        await this.anonymizeOldData(type, cutoffDate);
+        break;
+      case 'archive':
+        await this.archiveOldData(type, cutoffDate);
+        break;
+      case 'delete':
+        await this.deleteOldData(type, cutoffDate);
+        break;
+    }
+  }
+
+  // 4. Third-Party Risk Management
+  vendorRiskManagement = {
+    assessVendor: async (vendorId) => {
+      const vendor = await this.getVendor(vendorId);
+      
+      const assessment = {
+        securityScore: await this.evaluateSecurity(vendor),
+        complianceScore: await this.evaluateCompliance(vendor),
+        operationalScore: await this.evaluateOperations(vendor),
+        financialScore: await this.evaluateFinancial(vendor),
+        overallScore: 0
+      };
+      
+      assessment.overallScore = (
+        assessment.securityScore * 0.4 +
+        assessment.complianceScore * 0.3 +
+        assessment.operationalScore * 0.2 +
+        assessment.financialScore * 0.1
+      );
+      
+      return assessment;
+    },
+    
+    monitorVendor: async (vendorId) => {
+      // Continuous monitoring
+      setInterval(async () => {
+        const assessment = await this.assessVendor(vendorId);
+        if (assessment.overallScore < 60) {
+          await this.triggerVendorAlert(vendorId, assessment);
+        }
+      }, 7 * 24 * 60 * 60 * 1000); // Weekly
+    }
+  };
+}
