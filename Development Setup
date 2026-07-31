@@ -1,0 +1,15 @@
+# Clone the repository
+git clone https://github.com/your-username/the-fortress-hub.git
+cd the-fortress-hub
+
+# Install dependencies
+npm install
+
+# Setup development environment
+npm run setup:dev
+
+# Run tests
+npm test
+
+# Start development servers
+npm run dev
