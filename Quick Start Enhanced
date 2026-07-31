@@ -1,0 +1,14 @@
+# Full enhanced installation
+git clone https://github.com/your-repo/fortress-hub.git
+cd fortress-hub
+./scripts/setup-enhanced.sh
+
+# This installs:
+# ✅ All core features
+# ✅ AI Assistant with Gemini Pro
+# ✅ Multi-currency support
+# ✅ Team collaboration
+# ✅ Offline mobile sync
+# ✅ Advanced reporting
+# ✅ Bank integrations
+# ✅ Security compliance
