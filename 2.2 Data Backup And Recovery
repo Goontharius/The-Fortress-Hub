@@ -1,0 +1,156 @@
+// backend/services/backup.js
+class BackupService {
+  constructor() {
+    this.backupLocation = process.env.BACKUP_LOCATION || './backups';
+    this.retentionCount = 30;
+    this.encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
+  }
+
+  // 1. Automated Backups
+  async createBackup() {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupId = `backup-${timestamp}`;
+    
+    try {
+      // Backup database
+      const dbBackup = await this.backupDatabase(backupId);
+      
+      // Backup files (S3)
+      const s3Backup = await this.backupS3(backupId);
+      
+      // Backup configuration
+      const configBackup = await this.backupConfig(backupId);
+      
+      // Create manifest
+      const manifest = {
+        backupId,
+        timestamp: new Date().toISOString(),
+        version: process.env.npm_package_version,
+        components: {
+          database: dbBackup,
+          storage: s3Backup,
+          config: configBackup
+        },
+        checksums: {
+          database: await this.calculateChecksum(dbBackup),
+          storage: await this.calculateChecksum(s3Backup),
+          config: await this.calculateChecksum(configBackup)
+        }
+      };
+      
+      // Store manifest
+      await this.storeManifest(manifest);
+      
+      // Encrypt backup
+      const encryptedBackup = await this.encryptBackup(manifest);
+      
+      // Upload to secure storage
+      await this.uploadBackup(encryptedBackup, backupId);
+      
+      // Clean old backups
+      await this.cleanOldBackups();
+      
+      return {
+        backupId,
+        timestamp: manifest.timestamp,
+        size: await this.getBackupSize(backupId),
+        status: 'completed'
+      };
+    } catch (error) {
+      console.error('Backup failed:', error);
+      await this.logBackupFailure(error, backupId);
+      throw error;
+    }
+  }
+
+  // 2. Point-in-Time Recovery
+  async restoreBackup(backupId, targetTime) {
+    // Validate backup
+    const manifest = await this.getManifest(backupId);
+    if (!manifest) {
+      throw new Error('Backup not found');
+    }
+
+    // Validate backup integrity
+    await this.validateBackup(manifest);
+
+    // Stop services
+    await this.stopServices();
+
+    try {
+      // Restore database
+      await this.restoreDatabase(backupId);
+      
+      // Restore files
+      await this.restoreS3(backupId);
+      
+      // Restore configuration
+      await this.restoreConfig(backupId);
+      
+      // Replay transaction logs up to targetTime
+      if (targetTime) {
+        await this.replayTransactions(targetTime);
+      }
+      
+      // Verify restore
+      await this.verifyRestore();
+      
+      // Start services
+      await this.startServices();
+      
+      // Log restore
+      await this.logRestore(backupId, targetTime);
+      
+      return {
+        status: 'success',
+        backupId,
+        restoredAt: new Date().toISOString(),
+        targetTime: targetTime || null
+      };
+    } catch (error) {
+      // Rollback if needed
+      await this.rollbackRestore();
+      throw error;
+    }
+  }
+
+  // 3. Data Replication
+  async replicateData() {
+    // Multi-region replication
+    const regions = ['us-east-1', 'eu-west-1', 'ap-southeast-1'];
+    
+    for (const region of regions) {
+      await this.replicateToRegion(region);
+    }
+    
+    // Verify replication
+    await this.verifyReplication();
+  }
+
+  // 4. Disaster Recovery Test
+  async testDisasterRecovery() {
+    const testBackupId = `dr-test-${Date.now()}`;
+    
+    // 1. Create test backup
+    await this.createBackup(testBackupId);
+    
+    // 2. Simulate disaster
+    await this.simulateDisaster();
+    
+    // 3. Test restore
+    await this.restoreBackup(testBackupId);
+    
+    // 4. Validate system
+    const health = await this.validateSystemHealth();
+    
+    // 5. Generate DR report
+    return {
+      success: health.healthy,
+      timestamp: new Date().toISOString(),
+      duration: health.duration,
+      issues: health.issues,
+      recoveryPointObjective: '15 minutes',
+      recoveryTimeObjective: '1 hour'
+    };
+  }
+}
