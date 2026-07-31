@@ -1,0 +1,43 @@
+// utils/reconciliation.js
+class ReceiptReconciliation {
+  constructor(userId) {
+    this.userId = userId;
+  }
+  
+  // Match receipts to bank transactions
+  async matchToBankTransactions() {
+    const receipts = await this.getUnmatchedReceipts();
+    const transactions = await this.getBankTransactions();
+    
+    const matches = [];
+    
+    for (const receipt of receipts) {
+      const candidates = transactions.filter(t => 
+        Math.abs(t.amount - receipt.total) < 0.01 &&
+        Math.abs(t.date - receipt.date) < 2 &&
+        similarity(t.vendor, receipt.vendor) > 0.7
+      );
+      
+      if (candidates.length > 0) {
+        matches.push({
+          receipt,
+          transaction: candidates[0],
+          confidence: this.calculateConfidence(receipt, candidates[0])
+        });
+      }
+    }
+    
+    return matches;
+  }
+  
+  // Auto-generate reconciliation reports
+  generateReconciliationReport(matches) {
+    return {
+      totalMatched: matches.length,
+      totalUnmatched: this.receipts.length - matches.length,
+      amountMatched: matches.reduce((sum, m) => sum + m.receipt.total, 0),
+      discrepancies: this.findDiscrepancies(matches),
+      recommendations: this.generateRecommendations(matches)
+    };
+  }
+}
