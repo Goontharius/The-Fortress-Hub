@@ -1,0 +1,73 @@
+{
+  "name": "the-fortress-hub",
+  "version": "1.0.0",
+  "description": "🏰 The Fortress Hub - Receipt Management & Analytics Platform",
+  "private": true,
+  "workspaces": [
+    "src/backend",
+    "src/frontend",
+    "src/mobile",
+    "src/desktop"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:backend": "cd src/backend && npm run dev",
+    "dev:frontend": "cd src/frontend && npm start",
+    "dev:mobile": "cd src/mobile && npm start",
+    "dev:desktop": "cd src/desktop && npm run dev",
+    "build": "turbo run build",
+    "build:backend": "cd src/backend && npm run build",
+    "build:frontend": "cd src/frontend && npm run build",
+    "build:mobile": "cd src/mobile && npm run build",
+    "build:desktop": "cd src/desktop && npm run build",
+    "test": "turbo run test",
+    "test:backend": "cd src/backend && npm test",
+    "test:frontend": "cd src/frontend && npm test",
+    "test:e2e": "cd tests/e2e && npm test",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "security": "npm audit && npm run security:scan",
+    "security:scan": "snyk test",
+    "docker:up": "docker-compose -f config/docker/docker-compose.yml up -d",
+    "docker:down": "docker-compose -f config/docker/docker-compose.yml down",
+    "docker:logs": "docker-compose -f config/docker/docker-compose.yml logs -f",
+    "docker:build": "docker-compose -f config/docker/docker-compose.yml build",
+    "setup": "node scripts/setup/setup.js",
+    "setup:dev": "npm install && npm run docker:up && npm run migrate && npm run seed",
+    "migrate": "cd src/backend && npm run migrate",
+    "seed": "cd src/backend && npm run seed",
+    "deploy": "bash scripts/deploy/deploy.sh",
+    "backup": "bash scripts/maintenance/backup.sh",
+    "restore": "bash scripts/maintenance/restore.sh",
+    "clean": "rm -rf node_modules && rm -rf **/node_modules && rm -rf **/dist && rm -rf **/build",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "concurrently": "^8.2.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "husky": "^8.0.0",
+    "lerna": "^8.0.0",
+    "prettier": "^3.2.0",
+    "snyk": "^1.1280.0",
+    "turbo": "^1.11.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/the-fortress-hub.git"
+  },
+  "author": "The Fortress Hub Team",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/your-username/the-fortress-hub/issues"
+  },
+  "homepage": "https://fortresshub.com"
+}
