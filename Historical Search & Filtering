@@ -1,0 +1,227 @@
+// backend/services/historicalSearch.js
+class HistoricalSearchService {
+  constructor() {
+    this.searchIndex = new Map();
+    this.filters = {};
+  }
+
+  async searchHistorical(userId, query) {
+    const {
+      searchTerm,
+      startDate,
+      endDate,
+      categories,
+      vendors,
+      minAmount,
+      maxAmount,
+      tags,
+      sortBy = 'date',
+      sortOrder = 'desc',
+      page = 1,
+      limit = 50
+    } = query;
+
+    // Build search query
+    let searchQuery = `
+      SELECT 
+        r.*,
+        ya.year,
+        ya.archive_key,
+        ya.storage_tier
+      FROM receipts r
+      LEFT JOIN yearly_archives ya ON r.user_id = ya.user_id 
+        AND EXTRACT(YEAR FROM r.date) = ya.year
+      WHERE r.user_id = $1
+    `;
+
+    const params = [userId];
+    let paramIndex = 2;
+
+    // Apply filters
+    if (searchTerm) {
+      searchQuery += ` AND (
+        r.vendor ILIKE $${paramIndex} OR
+        r.category ILIKE $${paramIndex} OR
+        r.receipt_number ILIKE $${paramIndex} OR
+        EXISTS (
+          SELECT 1 FROM jsonb_array_elements(r.items) item
+          WHERE item->>'name' ILIKE $${paramIndex}
+        )
+      )`;
+      params.push(`%${searchTerm}%`);
+      paramIndex++;
+    }
+
+    if (startDate) {
+      searchQuery += ` AND r.date >= $${paramIndex}`;
+      params.push(startDate);
+      paramIndex++;
+    }
+
+    if (endDate) {
+      searchQuery += ` AND r.date <= $${paramIndex}`;
+      params.push(endDate);
+      paramIndex++;
+    }
+
+    if (categories && categories.length > 0) {
+      searchQuery += ` AND r.category = ANY($${paramIndex})`;
+      params.push(categories);
+      paramIndex++;
+    }
+
+    if (vendors && vendors.length > 0) {
+      searchQuery += ` AND r.vendor = ANY($${paramIndex})`;
+      params.push(vendors);
+      paramIndex++;
+    }
+
+    if (minAmount) {
+      searchQuery += ` AND r.total >= $${paramIndex}`;
+      params.push(minAmount);
+      paramIndex++;
+    }
+
+    if (maxAmount) {
+      searchQuery += ` AND r.total <= $${paramIndex}`;
+      params.push(maxAmount);
+      paramIndex++;
+    }
+
+    if (tags && tags.length > 0) {
+      searchQuery += ` AND EXISTS (
+        SELECT 1 FROM receipt_tags rt 
+        JOIN tags t ON rt.tag_id = t.id
+        WHERE rt.receipt_id = r.id AND t.name = ANY($${paramIndex})
+      )`;
+      params.push(tags);
+      paramIndex++;
+    }
+
+    // Sorting
+    const validSortColumns = ['date', 'total', 'vendor', 'category', 'created_at'];
+    const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'date';
+    const sortDirection = sortOrder === 'asc' ? 'ASC' : 'DESC';
+    searchQuery += ` ORDER BY ${sortColumn} ${sortDirection}`;
+
+    // Pagination
+    searchQuery += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    params.push(limit, (page - 1) * limit);
+
+    const result = await pgPool.query(searchQuery, params);
+
+    // Get total count (for pagination)
+    const countQuery = `
+      SELECT COUNT(*) 
+      FROM receipts r
+      WHERE r.user_id = $1
+    `;
+    const countParams = [userId];
+    // Apply same filters but without pagination
+    // ... (filter logic here)
+
+    const countResult = await pgPool.query(countQuery, countParams);
+
+    // Enhance results with storage tier info
+    const enhancedResults = await this.enhanceResults(result.rows);
+
+    return {
+      results: enhancedResults,
+      pagination: {
+        total: parseInt(countResult.rows[0].count),
+        page,
+        limit,
+        totalPages: Math.ceil(countResult.rows[0].count / limit)
+      },
+      filters: {
+        searchTerm,
+        startDate,
+        endDate,
+        categories,
+        vendors,
+        minAmount,
+        maxAmount,
+        tags,
+        sortBy,
+        sortOrder
+      }
+    };
+  }
+
+  // Advanced filtering with AI
+  async advancedSearch(userId, naturalLanguageQuery) {
+    // Use AI to interpret natural language
+    const interpreted = await this.interpretQuery(naturalLanguageQuery);
+    
+    // Execute interpreted search
+    const results = await this.searchHistorical(userId, interpreted);
+    
+    // Add AI-powered insights
+    results.aiInsights = await this.generateInsights(results);
+    
+    return results;
+  }
+
+  async interpretQuery(query) {
+    // Use Gemini to understand the query
+    const model = config.genAI.getGenerativeModel({ 
+      model: 'gemini-1.5-flash' 
+    });
+
+    const prompt = `
+      Convert this natural language query into structured search parameters:
+      "${query}"
+      
+      Return JSON with these fields:
+      - searchTerm: any specific terms to search for
+      - startDate: inferred start date (YYYY-MM-DD) or null
+      - endDate: inferred end date (YYYY-MM-DD) or null
+      - categories: inferred categories or []
+      - vendors: inferred vendors or []
+      - minAmount: inferred minimum amount or null
+      - maxAmount: inferred maximum amount or null
+      - tags: inferred tags or []
+      - sortBy: inferred sort field (date, total, etc.)
+      - sortOrder: asc or desc
+    `;
+
+    const result = await model.generateContent(prompt);
+    return JSON.parse(result.response.text());
+  }
+
+  // Generate search insights
+  async generateInsights(results) {
+    const insights = [];
+    
+    if (results.results.length > 0) {
+      const totals = results.results.map(r => r.total);
+      const sum = totals.reduce((a, b) => a + b, 0);
+      const avg = sum / totals.length;
+
+      insights.push({
+        type: 'summary',
+        message: `Found ${results.results.length} receipts totaling $${sum.toFixed(2)}`,
+        avg: avg.toFixed(2)
+      });
+
+      // Find top category
+      const categories = {};
+      results.results.forEach(r => {
+        categories[r.category] = (categories[r.category] || 0) + r.total;
+      });
+      const topCategory = Object.entries(categories)
+        .sort((a, b) => b[1] - a[1])[0];
+
+      if (topCategory) {
+        insights.push({
+          type: 'top_category',
+          category: topCategory[0],
+          amount: topCategory[1].toFixed(2),
+          message: `Top spending category: ${topCategory[0]} ($${topCategory[1].toFixed(2)})`
+        });
+      }
+    }
+
+    return insights;
+  }
+}
