@@ -1,0 +1,104 @@
+// monitoring/metrics.js
+const prometheus = require('prom-client');
+const logger = require('./logger');
+
+// Metrics
+const httpRequestDuration = new prometheus.Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds',
+  labelNames: ['method', 'route', 'status_code'],
+  buckets: [0.1, 0.3, 0.5, 1, 2, 5]
+});
+
+const activeUsers = new prometheus.Gauge({
+  name: 'active_users',
+  help: 'Number of active users'
+});
+
+const receiptCount = new prometheus.Counter({
+  name: 'receipts_total',
+  help: 'Total number of receipts processed',
+  labelNames: ['status', 'category']
+});
+
+const ocrDuration = new prometheus.Histogram({
+  name: 'ocr_processing_duration_seconds',
+  help: 'Duration of OCR processing',
+  buckets: [1, 5, 10, 30, 60]
+});
+
+const errorCount = new prometheus.Counter({
+  name: 'errors_total',
+  help: 'Total number of errors',
+  labelNames: ['type', 'code']
+});
+
+// Monitoring middleware
+const monitoringMiddleware = (req, res, next) => {
+  const start = Date.now();
+  
+  res.on('finish', () => {
+    const duration = (Date.now() - start) / 1000;
+    httpRequestDuration
+      .labels(req.method, req.route?.path || req.path, res.statusCode)
+      .observe(duration);
+  });
+  
+  next();
+};
+
+// Health check with detailed status
+app.get('/health', async (req, res) => {
+  const checks = {
+    database: await checkDatabase(),
+    redis: await checkRedis(),
+    s3: await checkS3(),
+    gemini: await checkGemini(),
+    memory: process.memoryUsage(),
+    uptime: process.uptime()
+  };
+  
+  const healthy = Object.values(checks).every(c => c.status === 'healthy');
+  
+  res.status(healthy ? 200 : 503).json({
+    status: healthy ? 'healthy' : 'unhealthy',
+    timestamp: new Date().toISOString(),
+    checks
+  });
+});
+
+// Logging with structured format
+const pino = require('pino');
+const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  formatters: {
+    level: (label) => ({ level: label }),
+    bindings: (bindings) => ({
+      pid: bindings.pid,
+      host: bindings.hostname
+    })
+  },
+  timestamp: pino.stdTimeFunctions.isoTime,
+  redact: ['password', 'email', 'token', 'key']
+});
+
+// Performance monitoring
+const performanceMonitor = {
+  trackOperation: (name, fn) => async (...args) => {
+    const start = Date.now();
+    try {
+      const result = await fn(...args);
+      const duration = Date.now() - start;
+      
+      if (duration > 1000) {
+        logger.warn(`SLOW OPERATION: ${name} took ${duration}ms`);
+      }
+      
+      return result;
+    } catch (error) {
+      const duration = Date.now() - start;
+      logger.error(`OPERATION FAILED: ${name} took ${duration}ms`, { error });
+      throw error;
+    }
+  }
+};
