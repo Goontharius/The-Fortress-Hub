@@ -1,0 +1,69 @@
+# analytics/forecasting.py (Python microservice)
+import pandas as pd
+from prophet import Prophet
+from sklearn.ensemble import RandomForestRegressor
+import numpy as np
+
+class SpendingPredictor:
+    def __init__(self, user_id):
+        self.user_id = user_id
+        self.model = None
+        
+    def train(self, historical_data):
+        # Prophet for time series
+        self.model = Prophet(
+            yearly_seasonality=True,
+            weekly_seasonality=True,
+            daily_seasonality=False,
+            changepoint_prior_scale=0.05
+        )
+        
+        df = pd.DataFrame({
+            'ds': historical_data['dates'],
+            'y': historical_data['spending']
+        })
+        
+        self.model.fit(df)
+        
+    def predict(self, days=30):
+        future = self.model.make_future_dataframe(periods=days)
+        forecast = self.model.predict(future)
+        
+        return {
+            'dates': forecast['ds'].tail(days).tolist(),
+            'predicted': forecast['yhat'].tail(days).tolist(),
+            'lower_bound': forecast['yhat_lower'].tail(days).tolist(),
+            'upper_bound': forecast['yhat_upper'].tail(days).tolist()
+        }
+    
+    def identify_patterns(self):
+        # Seasonal patterns
+        seasonal = self.model.seasonalities
+        
+        # Anomalies in historical
+        anomalies = self.detect_anomalies()
+        
+        # Spending habits
+        habits = self.analyze_habits()
+        
+        return {
+            'seasonality': seasonal,
+            'anomalies': anomalies,
+            'habits': habits,
+            'recommendations': self.generate_recommendations(habits)
+        }
+
+# Machine Learning for categorization
+class SmartCategorizer:
+    def __init__(self):
+        self.model = RandomForestRegressor(n_estimators=100)
+        self.features = ['vendor', 'total', 'date', 'items_count', 'day_of_week']
+        
+    def train(self, training_data):
+        X = self.extract_features(training_data)
+        y = training_data['category']
+        self.model.fit(X, y)
+        
+    def predict(self, receipt):
+        features = self.extract_features([receipt])
+        return self.model.predict(features)[0]
