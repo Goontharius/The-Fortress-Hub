@@ -1,0 +1,50 @@
+// ❌ CURRENT ISSUE: No circuit breakers for external services
+const imageResponse = await axios.get(imageUrl);
+
+// ✅ FIX: Circuit breaker pattern
+const CircuitBreaker = require('opossum');
+
+const options = {
+  timeout: 30000, // 30 seconds
+  errorThresholdPercentage: 50, // Open if 50% fail
+  resetTimeout: 30000, // Try again after 30 seconds
+  rollingCountTimeout: 10000, // 10 second window
+  rollingCountBuckets: 10
+};
+
+// S3 upload with circuit breaker
+const s3Breaker = new CircuitBreaker(async (params) => {
+  return await config.s3.upload(params).promise();
+}, options);
+
+s3Breaker.fallback(() => {
+  return { Location: process.env.FALLBACK_S3_URL || null };
+});
+
+s3Breaker.on('open', () => {
+  console.error('S3 circuit breaker opened!');
+  notifyOps({ service: 's3', status: 'degraded' });
+});
+
+// Gemini API with circuit breaker
+const geminiBreaker = new CircuitBreaker(async (prompt, image) => {
+  return await model.generateContent([prompt, image]);
+}, options);
+
+// Exponential backoff retry
+const retryWithBackoff = async (fn, maxRetries = 3) => {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      const delay = Math.min(1000 * Math.pow(2, attempt), 30000);
+      console.log(`Attempt ${attempt} failed, retrying in ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
+};
