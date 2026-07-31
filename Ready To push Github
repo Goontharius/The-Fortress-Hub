@@ -1,0 +1,13 @@
+# Initialize repository
+git init
+git add .
+git commit -m "Initial commit: 🏰 The Fortress Hub"
+
+# Create repository on GitHub
+# Then push
+git remote add origin https://github.com/your-username/the-fortress-hub.git
+git push -u origin main
+
+# First release
+git tag -a v1.0.0 -m "Initial release"
+git push origin v1.0.0
