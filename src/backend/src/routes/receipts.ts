@@ -10,6 +10,58 @@ import { Receipt } from "../models/receipt";
 
 const router = Router();
 
+function validateReceiptPayload(
+  payload: unknown,
+): payload is {
+  vendor: string;
+  amount: number;
+  date: string;
+  currency?: string;
+  category?: string;
+  notes?: string;
+  source?: Receipt["source"];
+} {
+  if (!payload || typeof payload !== "object") {
+    return false;
+  }
+
+  const candidate = payload as Record<string, unknown>;
+  const hasVendor = typeof candidate.vendor === "string" && candidate.vendor.trim() !== "";
+  const hasAmount = typeof candidate.amount === "number" && Number.isFinite(candidate.amount);
+  const hasDate = typeof candidate.date === "string" && candidate.date.trim() !== "";
+
+  if (!hasVendor || !hasAmount || !hasDate) {
+    return false;
+  }
+
+  if (candidate.currency !== undefined && typeof candidate.currency !== "string") {
+    return false;
+  }
+
+  if (candidate.category !== undefined && typeof candidate.category !== "string") {
+    return false;
+  }
+
+  if (candidate.notes !== undefined && typeof candidate.notes !== "string") {
+    return false;
+  }
+
+  if (candidate.source !== undefined) {
+    if (typeof candidate.source !== "object" || candidate.source === null) {
+      return false;
+    }
+    const source = candidate.source as Record<string, unknown>;
+    if (
+      (source.filename !== undefined && typeof source.filename !== "string") ||
+      (source.uploadedAt !== undefined && typeof source.uploadedAt !== "string")
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 router.get("/", async (req, res) => {
   const receipts = await listReceipts();
   res.json(receipts);
@@ -27,12 +79,7 @@ router.post("/", async (req, res) => {
   const payload = req.body as Partial<
     Omit<Receipt, "id" | "createdAt" | "updatedAt">
   >;
-  if (
-    !payload ||
-    typeof payload.vendor !== "string" ||
-    typeof payload.amount !== "number" ||
-    typeof payload.date !== "string"
-  ) {
+  if (!validateReceiptPayload(payload)) {
     return res
       .status(400)
       .json({ error: "vendor, amount, and date are required" });
@@ -52,7 +99,15 @@ router.post("/", async (req, res) => {
 });
 
 router.put("/:id", async (req, res) => {
-  const updated = await updateReceipt(req.params.id, req.body);
+  const payload = req.body as Partial<
+    Omit<Receipt, "id" | "createdAt" | "updatedAt">
+  >;
+
+  if (!validateReceiptPayload(payload)) {
+    return res.status(400).json({ error: "Invalid receipt payload" });
+  }
+
+  const updated = await updateReceipt(req.params.id, payload);
   if (!updated) {
     return res.status(404).json({ error: "Receipt not found" });
   }
@@ -78,12 +133,7 @@ router.post("/upload", async (req, res) => {
     sourceBase64?: string;
   };
 
-  if (
-    !payload ||
-    typeof payload.vendor !== "string" ||
-    typeof payload.amount !== "number" ||
-    typeof payload.date !== "string"
-  ) {
+  if (!validateReceiptPayload(payload)) {
     return res
       .status(400)
       .json({ error: "vendor, amount, and date are required" });
