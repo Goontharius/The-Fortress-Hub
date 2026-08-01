@@ -22,7 +22,7 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
   const tokenNote = process.env.API_TOKEN
     ? "Using configured API token."
-    : "Using default API token for local development.";
+    : "Authentication requires API_TOKEN to be set in the environment.";
   console.log(`Backend running at http://localhost:${port}`);
   console.log(tokenNote);
 });
