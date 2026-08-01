@@ -16,7 +16,9 @@ export function authMiddleware(
   const configuredToken = getConfiguredToken();
 
   if (!configuredToken) {
-    return res.status(500).json({ error: "Authentication is not configured on server" });
+    return res
+      .status(500)
+      .json({ error: "Authentication is not configured on server" });
   }
 
   const authHeader = req.headers.authorization;

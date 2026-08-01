@@ -26,7 +26,11 @@ function runAuthCheck(headers, expectedStatus, expectedBody) {
     nextCalled = true;
   });
 
-  assert.strictEqual(res.statusCode, expectedStatus, `Expected status ${expectedStatus}, got ${res.statusCode}`);
+  assert.strictEqual(
+    res.statusCode,
+    expectedStatus,
+    `Expected status ${expectedStatus}, got ${res.statusCode}`,
+  );
   assert.deepStrictEqual(res.body, expectedBody);
   assert.strictEqual(nextCalled, false);
 }
