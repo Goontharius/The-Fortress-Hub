@@ -15,13 +15,23 @@ function withTempWorkspace(testFn) {
 }
 
 withTempWorkspace((tempDir) => {
-  fs.writeFileSync(path.join(tempDir, ".env.example"), "API_TOKEN=test-token\n", "utf8");
+  fs.writeFileSync(
+    path.join(tempDir, ".env.example"),
+    "API_TOKEN=test-token\n",
+    "utf8",
+  );
 
   setupWorkspace({ rootDir: tempDir, skipInstall: true });
 
   const envPath = path.join(tempDir, ".env");
-  assert.ok(fs.existsSync(envPath), "Expected .env to be created from .env.example");
-  assert.strictEqual(fs.readFileSync(envPath, "utf8"), "API_TOKEN=test-token\n");
+  assert.ok(
+    fs.existsSync(envPath),
+    "Expected .env to be created from .env.example",
+  );
+  assert.strictEqual(
+    fs.readFileSync(envPath, "utf8"),
+    "API_TOKEN=test-token\n",
+  );
 });
 
 console.log("setup script test passed");
