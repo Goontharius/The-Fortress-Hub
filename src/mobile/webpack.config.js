@@ -9,7 +9,7 @@ module.exports = async function (env, argv) {
     fallback: {
       ...(config.resolve?.fallback || {}),
       assert: require.resolve("assert/"),
-      browserify-zlib: require.resolve("browserify-zlib"),
+      "browserify-zlib": require.resolve("browserify-zlib"),
       buffer: require.resolve("buffer/"),
       crypto: require.resolve("crypto-browserify"),
       http: require.resolve("stream-http"),
