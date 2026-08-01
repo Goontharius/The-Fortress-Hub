@@ -1,7 +1,7 @@
 {
   "name": "the-fortress-hub",
   "version": "1.0.0",
-  "description": "🏰 The Fortress Hub - Receipt Management & Analytics Platform",
+  "description": "\ud83c\udff0 The Fortress Hub - Receipt Management & Analytics Platform",
   "private": true,
   "workspaces": [
     "src/backend",
@@ -20,7 +20,7 @@
     "build:frontend": "cd src/frontend && npm run build",
     "build:mobile": "cd src/mobile && npm run build",
     "build:desktop": "cd src/desktop && npm run build",
-    "test": "npm run test:backend && npm run test:frontend && npm run test:mobile && npm run test:desktop",
+    "test": "npm run test:backend && npm run test:frontend && npm run test:mobile && npm run test:desktop && npm run test:setup",
     "test:backend": "cd src/backend && npm test",
     "test:frontend": "cd src/frontend && npm test",
     "test:mobile": "cd src/mobile && npm test",
@@ -43,7 +43,8 @@
     "backup": "bash scripts/maintenance/backup.sh",
     "restore": "bash scripts/maintenance/restore.sh",
     "clean": "rm -rf node_modules && rm -rf **/node_modules && rm -rf **/dist && rm -rf **/build",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "test:setup": "node scripts/setup/setup.test.js"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
