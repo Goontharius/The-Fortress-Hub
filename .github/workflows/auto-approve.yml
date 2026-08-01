@@ -1,0 +1,19 @@
+name: Auto Approve
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  auto-approve:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Auto approve pull request
+        uses: hmarr/auto-approve-action@v4
+        with:
+          review-message: Auto-approved by repository automation
