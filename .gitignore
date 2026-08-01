@@ -8,6 +8,7 @@ build
 .env.local
 .env.*.local
 .env.*
+!.env.example
 .vscode
 .idea
 *.log
@@ -18,4 +19,9 @@ coverage
 .turbo
 /expo
 **/.expo
+**/web-build
+**/android
+**/ios
 *.tsbuildinfo
+*.tmp
+*.temp
