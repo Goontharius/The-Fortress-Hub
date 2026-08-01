@@ -23,10 +23,7 @@ module.exports = async function (env, argv) {
     },
   };
 
-  config.plugins = [
-    ...(config.plugins || []),
-    new NodePolyfillPlugin(),
-  ];
+  config.plugins = [...(config.plugins || []), new NodePolyfillPlugin()];
 
   return config;
 };
